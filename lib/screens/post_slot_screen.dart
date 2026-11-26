@@ -39,16 +39,16 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
   late final _title = TextEditingController(text: _old?.title ?? '');
   late final _details = TextEditingController(text: _old?.description ?? '');
   late final _address = TextEditingController(text: _old?.address ?? '');
-  late final _price = TextEditingController(text: _old == null ? '' : '${_old!.priceEgp}');
+  late final _price = TextEditingController(text: _old == null ? '' : '${_old.priceEgp}');
   late SlotKind _kind = _old?.kind ?? SlotKind.observe;
   late String? _area = _old?.area;
   late DateTime? _date = _old?.startsAt;
-  late TimeOfDay _from = _old == null ? const TimeOfDay(hour: 10, minute: 0) : TimeOfDay.fromDateTime(_old!.startsAt);
-  late TimeOfDay _to = _old == null ? const TimeOfDay(hour: 14, minute: 0) : TimeOfDay.fromDateTime(_old!.endsAt);
+  late TimeOfDay _from = _old == null ? const TimeOfDay(hour: 10, minute: 0) : TimeOfDay.fromDateTime(_old.startsAt);
+  late TimeOfDay _to = _old == null ? const TimeOfDay(hour: 14, minute: 0) : TimeOfDay.fromDateTime(_old.endsAt);
   late int _capacity = _old?.capacity ?? 3;
   late MemberRole _needRole = _old?.needRole ?? MemberRole.dentist;
   late final List<_Photo> _photos = [for (final p in _old?.photoPaths ?? const <String>[]) _Photo.saved(p)];
-  late LatLng? _location = (_old != null && _old!.hasLocation) ? LatLng(_old!.lat!, _old!.lng!) : null;
+  late LatLng? _location = (_old != null && _old.hasLocation) ? LatLng(_old.lat!, _old.lng!) : null;
   bool _busy = false;
   String? _error;
 
@@ -155,7 +155,7 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
           lat: _location?.latitude,
           lng: _location?.longitude,
         );
-        await repo.removeSlotPhotos(_old!.photoPaths.where((p) => !paths.contains(p)).toList());
+        await repo.removeSlotPhotos(_old.photoPaths.where((p) => !paths.contains(p)).toList());
       } else {
         await repo.createSlot(
           kind: _kind,

@@ -26,17 +26,19 @@ Built with **Flutter** (one codebase for Android and iPhone) and **Supabase** (d
 
 ### Screens
 
-1. **Sign in / create account** (email and password)
+1. **Sign in / create account**, with **Forgot password?**
 2. **Verification**: name, mobile, dentist or assistant, syndicate number, area, photos of the syndicate card and national ID
-3. **Waiting for approval**
-4. **Explore**: all open slots, filtered by type and area, shown as tickets
-5. **Slot details**: when, where, price, places left. The exact address and the host's phone appear only after the host accepts.
+3. **Waiting for approval** (and a clear message if an account is suspended)
+4. **Explore**: search by word or host, filter by type, date (this week, the weekend, a chosen day) and area, sort by **Near me**, and switch between a list and a **map**
+5. **Slot details**: photos, when, where, price, places left, the host's rating, and a map. The exact address, map pin and the host's phone appear only after the host accepts; before that the map shows an area of about 1 km.
 6. **Review and confirm**: price, DentPass fee and total, an optional message, then "Send request"
-7. **Post a slot**: type, title, details, area, address, date, times, seats or people needed, price, optional photo
-8. **Bookings**: "My bookings" with their status and cancel, and "My posts" with how many requests are waiting
-9. **Manage requests** (host): accept or decline, close the slot, call or WhatsApp people you accepted
-10. **Notifications**: new requests, accepted, declined, cancelled, account approved
-11. **Profile**: language switch, sign out, and for admins, **Review new members** to approve or reject documents
+7. **Post a slot**: type, title, details, up to 6 photos, area, address, map location, date, times, seats or people needed, price
+8. **Bookings**: "My bookings" with status, cancel, and **Rate the host** after the slot; "My posts" with requests waiting
+9. **Manage a slot** (host): accept or decline, **edit** or **delete** the slot, close it, call or WhatsApp accepted people, **rate** them afterwards
+10. **Member pages**: photo, about, rating, slots hosted and attended, upcoming slots, reviews
+11. **Notifications**: requests, answers, cancellations, changes to a slot, new ratings, account approved or suspended
+12. **Profile**: edit photo, about, area and phone; view my public page; language; change password; sign out; **delete my account**
+13. **Admin** (for admins): **Waiting** (approve or reject documents), **Members** (search, suspend, reinstate), **Slots** (remove any upcoming slot), **Overview** (members, slots, requests and fees in the last 30 days)
 
 ### How a booking works
 
@@ -56,7 +58,7 @@ The database enforces all of this, not just the app: nobody can approve themselv
 ### 1. Supabase (about 15 minutes)
 
 1. Create a free project at [supabase.com](https://supabase.com).
-2. Open **SQL Editor**, paste all of `supabase/migrations/0001_init.sql`, and run it.
+2. Open **SQL Editor** and run each file in `supabase/migrations/` in order: first `0001_init.sql`, then `0002_v2.sql`. Paste the whole file, then **Run**. Each later file is an update that keeps the app working.
 3. Go to **Authentication → Providers → Email**: keep email sign-in on, turn on **Confirm email**, and set the minimum password length to 8.
 4. Go to **Project Settings → API** and copy the **Project URL** and the **anon public** key. Never put the `service_role` key in the app.
 
@@ -140,15 +142,20 @@ One-time setup on GitHub:
 
 ---
 
-## Not built yet (version 2)
+## Not built yet
 
 - In-app payment (Paymob or Fawry) with deposits and a cancellation policy
-- Push notifications (Firebase Cloud Messaging). Version 1 shows notifications in the app only.
-- Ratings after each slot
-- Map and distance
-- Editing a slot after posting (hosts can close it and post again)
-- Search by keyword
-- Chat inside the app
+- Push notifications (Firebase Cloud Messaging). Notifications show inside the app.
+- Chat inside the app (Call and WhatsApp work once a request is accepted)
+
+---
+
+## How updates go live
+
+- Every push to any branch runs all checks: code check, 19 screen tests in Arabic and English,
+  and end-to-end database tests on a private copy of Supabase (`tests/backend/`).
+- Only the `main` branch is published. A new version that needs a database update is
+  checked on its own branch first, then merged into `main` after the SQL has been run.
 
 ---
 
