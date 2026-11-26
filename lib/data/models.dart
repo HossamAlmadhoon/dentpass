@@ -2,7 +2,7 @@ enum SlotKind { observe, course, rent, cover }
 
 enum BookingStatus { pending, accepted, declined, cancelled }
 
-enum VerificationStatus { unverified, pending, approved, rejected }
+enum VerificationStatus { unverified, pending, approved, rejected, suspended }
 
 enum MemberRole { dentist, assistant }
 
@@ -18,6 +18,10 @@ DateTime _date(Object? raw) => raw is String ? DateTime.parse(raw).toLocal() : D
 
 int _int(Object? raw) => raw is num ? raw.toInt() : 0;
 
+double? _double(Object? raw) => raw is num ? raw.toDouble() : (raw is String ? double.tryParse(raw) : null);
+
+List<String> _strings(Object? raw) => raw is List ? raw.whereType<String>().toList() : const [];
+
 class Profile {
   Profile({
     required this.id,
@@ -31,6 +35,8 @@ class Profile {
     required this.cardPath,
     required this.idPath,
     required this.isAdmin,
+    required this.bio,
+    required this.avatarPath,
   });
 
   final String id;
@@ -44,6 +50,8 @@ class Profile {
   final String? cardPath;
   final String? idPath;
   final bool isAdmin;
+  final String bio;
+  final String? avatarPath;
 
   factory Profile.fromMap(Map<String, dynamic> m) => Profile(
         id: m['id'] as String,
@@ -57,6 +65,8 @@ class Profile {
         cardPath: m['card_path'] as String?,
         idPath: m['id_path'] as String?,
         isAdmin: (m['is_admin'] as bool?) ?? false,
+        bio: (m['bio'] as String?) ?? '',
+        avatarPath: m['avatar_path'] as String?,
       );
 }
 
@@ -79,6 +89,12 @@ class Slot {
     required this.photoPath,
     required this.isOpen,
     required this.hostPhone,
+    required this.photoPaths,
+    required this.lat,
+    required this.lng,
+    required this.hostRating,
+    required this.hostReviews,
+    required this.exactLocation,
   });
 
   final String id;
@@ -98,6 +114,15 @@ class Slot {
   final String? photoPath;
   final bool isOpen;
   final String? hostPhone; // only once your booking is accepted
+  final List<String> photoPaths;
+  final double? lat; // rounded to about 1 km unless [exactLocation]
+  final double? lng;
+  final double? hostRating;
+  final int hostReviews;
+  final bool exactLocation;
+
+  bool get hasLocation => lat != null && lng != null;
+  bool get hasEnded => endsAt.isBefore(DateTime.now());
 
   int get placesLeft => (capacity - taken).clamp(0, capacity);
   bool get isFull => kind != SlotKind.cover && placesLeft == 0;
@@ -120,6 +145,17 @@ class Slot {
         photoPath: m['photo_path'] as String?,
         isOpen: (m['is_open'] as bool?) ?? true,
         hostPhone: m['host_phone'] as String?,
+        photoPaths: () {
+          final list = _strings(m['photo_paths']);
+          if (list.isNotEmpty) return list;
+          final single = m['photo_path'] as String?;
+          return single == null ? <String>[] : [single];
+        }(),
+        lat: _double(m['lat']),
+        lng: _double(m['lng']),
+        hostRating: _double(m['host_rating']),
+        hostReviews: _int(m['host_reviews']),
+        exactLocation: (m['exact_location'] as bool?) ?? false,
       );
 }
 
@@ -173,6 +209,10 @@ class HostedSlot {
 class SlotRequest {
   SlotRequest({
     required this.id,
+    required this.userId,
+    required this.rating,
+    required this.reviews,
+    required this.reviewed,
     required this.status,
     required this.message,
     required this.fullName,
@@ -181,6 +221,10 @@ class SlotRequest {
   });
 
   final String id;
+  final String userId;
+  final double? rating;
+  final int reviews;
+  final bool reviewed;
   final BookingStatus status;
   final String message;
   final String fullName;
@@ -189,6 +233,10 @@ class SlotRequest {
 
   factory SlotRequest.fromMap(Map<String, dynamic> m) => SlotRequest(
         id: m['id'] as String,
+        userId: (m['user_id'] as String?) ?? '',
+        rating: _double(m['rating']),
+        reviews: _int(m['reviews']),
+        reviewed: (m['reviewed'] as bool?) ?? false,
         status: _enum(BookingStatus.values, m['status'], BookingStatus.pending),
         message: (m['message'] as String?) ?? '',
         fullName: (m['full_name'] as String?) ?? '',
@@ -218,8 +266,91 @@ class AppNotification {
         id: m['id'] as String,
         type: (m['type'] as String?) ?? '',
         slotId: m['slot_id'] as String?,
-        slotTitle: m['slots'] is Map ? ((m['slots'] as Map)['title'] as String? ?? '') : '',
+        slotTitle: m['slots'] is Map
+            ? ((m['slots'] as Map)['title'] as String? ?? '')
+            : ((m['slot_title'] as String?) ?? ''),
         read: (m['read'] as bool?) ?? false,
         createdAt: _date(m['created_at']),
       );
+}
+
+/// A member's public page.
+class Member {
+  Member({
+    required this.id,
+    required this.fullName,
+    required this.role,
+    required this.area,
+    required this.bio,
+    required this.avatarPath,
+    required this.memberSince,
+    required this.rating,
+    required this.reviews,
+    required this.hosted,
+    required this.attended,
+  });
+
+  final String id;
+  final String fullName;
+  final MemberRole role;
+  final String area;
+  final String bio;
+  final String? avatarPath;
+  final DateTime memberSince;
+  final double? rating;
+  final int reviews;
+  final int hosted;
+  final int attended;
+
+  factory Member.fromMap(Map<String, dynamic> m) => Member(
+        id: m['id'] as String,
+        fullName: (m['full_name'] as String?) ?? '',
+        role: _enum(MemberRole.values, m['role'], MemberRole.dentist),
+        area: (m['area'] as String?) ?? '',
+        bio: (m['bio'] as String?) ?? '',
+        avatarPath: m['avatar_path'] as String?,
+        memberSince: _date(m['member_since']),
+        rating: _double(m['rating']),
+        reviews: _int(m['reviews']),
+        hosted: _int(m['hosted']),
+        attended: _int(m['attended']),
+      );
+}
+
+class Review {
+  Review({
+    required this.id,
+    required this.stars,
+    required this.comment,
+    required this.createdAt,
+    required this.slotTitle,
+    required this.reviewerId,
+    required this.reviewerName,
+  });
+
+  final String id;
+  final int stars;
+  final String comment;
+  final DateTime createdAt;
+  final String slotTitle;
+  final String reviewerId;
+  final String reviewerName;
+
+  factory Review.fromMap(Map<String, dynamic> m) => Review(
+        id: m['id'] as String,
+        stars: _int(m['stars']),
+        comment: (m['comment'] as String?) ?? '',
+        createdAt: _date(m['created_at']),
+        slotTitle: (m['slot_title'] as String?) ?? '',
+        reviewerId: (m['reviewer_id'] as String?) ?? '',
+        reviewerName: (m['reviewer_name'] as String?) ?? '',
+      );
+}
+
+/// Numbers on the admin overview.
+class AdminOverview {
+  AdminOverview(this.values);
+  final Map<String, dynamic> values;
+
+  int count(String key) => _int(values[key]);
 }

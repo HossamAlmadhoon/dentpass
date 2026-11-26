@@ -6,38 +6,63 @@ import 'package:dentpass/data/repo.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
 import 'package:dentpass/locale_controller.dart';
 import 'package:dentpass/screens/admin_screen.dart';
+import 'package:dentpass/screens/edit_profile_screen.dart';
+import 'package:dentpass/screens/member_screen.dart';
 import 'package:dentpass/screens/password_screens.dart';
 import 'package:dentpass/theme.dart';
-import 'package:dentpass/ui/format.dart';
 import 'package:dentpass/ui/kinds.dart';
+import 'package:dentpass/ui/widgets.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key, required this.profile, required this.onChanged});
   final Profile profile;
   final VoidCallback onChanged;
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  late final Future<Member?> _me = repo.member(widget.profile.id);
+  bool _deleting = false;
+
+  Future<void> _deleteAccount() async {
+    final t = AppLocalizations.of(context);
+    if (!await confirmAction(context, title: t.deleteAccount, body: t.deleteAccountConfirm, action: t.delete, danger: true)) {
+      return;
+    }
+    setState(() => _deleting = true);
+    try {
+      await repo.deleteMyAccount(); // signs out; the app returns to sign-in
+    } catch (e) {
+      if (mounted) {
+        setState(() => _deleting = false);
+        showMessage(context, errorText(context, e));
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final lang = Localizations.localeOf(context).languageCode;
+    final p = widget.profile;
+
+    void open(Widget screen) => Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+
     return Scaffold(
       appBar: AppBar(title: Text(t.tabProfile, style: const TextStyle(fontWeight: FontWeight.w800))),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
         children: [
           Row(children: [
-            CircleAvatar(
-              radius: 32,
-              backgroundColor: AppColors.ink,
-              foregroundColor: Colors.white,
-              child: Text(initials(profile.fullName), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-            ),
+            Avatar(name: p.fullName, photoUrl: p.avatarPath == null ? null : repo.avatarUrl(p.avatarPath!), radius: 32),
             const SizedBox(width: 14),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(profile.fullName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                Text(p.fullName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
                 Text(
-                  [roleName(t, profile.role), areaName(context, profile.area)].where((s) => s.isNotEmpty).join(lang == 'ar' ? '، ' : ', '),
+                  [roleName(t, p.role), areaName(context, p.area)].where((s) => s.isNotEmpty).join(lang == 'ar' ? '، ' : ', '),
                   style: const TextStyle(color: AppColors.muted),
                 ),
                 const SizedBox(height: 4),
@@ -45,10 +70,39 @@ class ProfileScreen extends StatelessWidget {
                   const Icon(Icons.verified, size: 16, color: AppColors.nile),
                   const SizedBox(width: 4),
                   Text(t.statusApproved, style: const TextStyle(color: AppColors.nile, fontWeight: FontWeight.w700)),
+                  const SizedBox(width: 10),
+                  FutureBuilder<Member?>(
+                    future: _me,
+                    builder: (context, snap) => snap.data == null
+                        ? const SizedBox.shrink()
+                        : RatingLine(rating: snap.data!.rating, count: snap.data!.reviews, compact: true),
+                  ),
                 ]),
               ]),
             ),
           ]),
+          const SizedBox(height: 20),
+          Row(children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final saved = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(builder: (_) => EditProfileScreen(profile: p)),
+                  );
+                  if (saved == true) widget.onChanged();
+                },
+                icon: const Icon(Icons.edit_outlined),
+                label: Text(t.editProfile),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () => open(MemberScreen(userId: p.id, viewer: p)),
+            icon: const Icon(Icons.badge_outlined),
+            label: Text(t.viewMyPage),
+          ),
           const SizedBox(height: 28),
           Text(t.language, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           const SizedBox(height: 10),
@@ -60,10 +114,10 @@ class ProfileScreen extends StatelessWidget {
             selected: {lang},
             onSelectionChanged: (s) => localeController.setLanguage(s.first),
           ),
-          if (profile.isAdmin) ...[
+          if (p.isAdmin) ...[
             const SizedBox(height: 28),
-            OutlinedButton.icon(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminScreen())),
+            FilledButton.icon(
+              onPressed: () => open(const AdminScreen()),
               icon: const Icon(Icons.admin_panel_settings_outlined),
               label: Text(t.reviewMembers),
             ),
@@ -77,11 +131,18 @@ class ProfileScreen extends StatelessWidget {
             icon: const Icon(Icons.lock_outline),
             label: Text(t.changePassword),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           OutlinedButton.icon(
             onPressed: repo.signOut,
             icon: const Icon(Icons.logout),
             label: Text(t.signOut),
+          ),
+          const SizedBox(height: 28),
+          TextButton.icon(
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            onPressed: _deleting ? null : _deleteAccount,
+            icon: const Icon(Icons.delete_forever_outlined),
+            label: Text(t.deleteAccount),
           ),
         ],
       ),

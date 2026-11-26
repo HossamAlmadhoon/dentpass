@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:dentpass/data/models.dart';
 import 'package:dentpass/data/repo.dart';
+import 'package:dentpass/platform/url_cleanup.dart';
 import 'package:dentpass/screens/home_shell.dart';
 import 'package:dentpass/screens/password_screens.dart';
 import 'package:dentpass/screens/pending_screen.dart';
@@ -53,7 +54,12 @@ class _AuthGateState extends State<AuthGate> {
   Widget build(BuildContext context) {
     final session = _session;
     if (session == null) return const SignInScreen();
-    if (_recovering) return SetPasswordScreen(onDone: () => setState(() => _recovering = false));
+    if (_recovering) {
+      return SetPasswordScreen(onDone: () {
+        cleanUpAddressBar();
+        setState(() => _recovering = false);
+      });
+    }
     return _ProfileGate(key: ValueKey(session.user.id));
   }
 }
@@ -89,6 +95,7 @@ class _ProfileGateState extends State<_ProfileGate> {
         return switch (p.status) {
           VerificationStatus.approved => HomeShell(profile: p, onProfileChanged: _reload),
           VerificationStatus.pending => PendingScreen(onCheckAgain: _reload),
+          VerificationStatus.suspended => PendingScreen(onCheckAgain: _reload, suspended: true),
           VerificationStatus.unverified || VerificationStatus.rejected =>
             VerifyScreen(profile: p, onSubmitted: _reload),
         };

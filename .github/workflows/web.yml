@@ -4,8 +4,8 @@
 name: Build and publish web app
 
 on:
+  # Every branch is checked; only main is published.
   push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -14,7 +14,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -91,6 +91,7 @@ jobs:
 
   deploy:
     needs: [build, backend]
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

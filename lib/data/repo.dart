@@ -85,10 +85,21 @@ class Repo {
   }
 
   // ---------------------------------------------------------------- slots
-  Future<List<Slot>> feed({List<SlotKind>? kinds, String? area}) async {
+  Future<List<Slot>> feed({
+    List<SlotKind>? kinds,
+    String? area,
+    String? query,
+    DateTime? from,
+    DateTime? to,
+    String? hostId,
+  }) async {
     final rows = await db.rpc('get_feed', params: {
       'p_kind': kinds?.map((k) => k.name).toList(),
       'p_area': area,
+      'p_query': (query == null || query.trim().isEmpty) ? null : query.trim(),
+      'p_from': from?.toUtc().toIso8601String(),
+      'p_to': to?.toUtc().toIso8601String(),
+      'p_host': hostId,
     });
     return (rows as List).map((r) => Slot.fromMap(r as Map<String, dynamic>)).toList();
   }
@@ -109,7 +120,9 @@ class Repo {
     required int capacity,
     required int priceEgp,
     required MemberRole? needRole,
-    required String? photoPath,
+    required List<String> photoPaths,
+    required double? lat,
+    required double? lng,
   }) async {
     await db.from('slots').insert({
       'host_id': uid,
@@ -123,8 +136,60 @@ class Repo {
       'capacity': capacity,
       'price_egp': priceEgp,
       'need_role': kind == SlotKind.cover ? (needRole ?? MemberRole.dentist).name : null,
-      'photo_path': photoPath,
+      'photo_path': photoPaths.isEmpty ? null : photoPaths.first,
+      'photo_paths': photoPaths,
+      'lat': lat,
+      'lng': lng,
     });
+  }
+
+  /// Saves a host's edits. People with a request are told automatically when
+  /// the time, place or price changes.
+  Future<void> updateSlot(
+    String slotId, {
+    required String title,
+    required String description,
+    required String area,
+    required String address,
+    required DateTime startsAt,
+    required DateTime endsAt,
+    required int capacity,
+    required int priceEgp,
+    required MemberRole? needRole,
+    required List<String> photoPaths,
+    required double? lat,
+    required double? lng,
+  }) async {
+    await db.from('slots').update({
+      'title': title,
+      'description': description,
+      'area': area,
+      'address': address,
+      'starts_at': startsAt.toUtc().toIso8601String(),
+      'ends_at': endsAt.toUtc().toIso8601String(),
+      'capacity': capacity,
+      'price_egp': priceEgp,
+      if (needRole != null) 'need_role': needRole.name,
+      'photo_path': photoPaths.isEmpty ? null : photoPaths.first,
+      'photo_paths': photoPaths,
+      'lat': lat,
+      'lng': lng,
+    }).eq('id', slotId);
+  }
+
+  /// Deletes a slot. Everyone with a request is told it was cancelled.
+  Future<void> deleteSlot(String slotId, {List<String> photoPaths = const []}) async {
+    await db.from('slots').delete().eq('id', slotId);
+    await removeSlotPhotos(photoPaths);
+  }
+
+  /// Removes photos the host took off a slot. Failures are ignored: an unused file does no harm.
+  Future<void> removeSlotPhotos(List<String> paths) async {
+    final own = paths.where((p) => p.startsWith('$uid/')).toList();
+    if (own.isEmpty) return;
+    try {
+      await db.storage.from('slot-photos').remove(own);
+    } catch (_) {}
   }
 
   Future<void> setSlotOpen(String slotId, bool open) async {
@@ -184,6 +249,56 @@ class Repo {
     return rows.map((r) => SlotRequest.fromMap(r as Map<String, dynamic>)).toList();
   }
 
+  // ---------------------------------------------------------------- members and ratings
+  Future<Member?> member(String userId) async {
+    final rows = await db.rpc('get_member', params: {'p_user': userId}) as List;
+    return rows.isEmpty ? null : Member.fromMap(rows.first as Map<String, dynamic>);
+  }
+
+  Future<List<Review>> reviewsOf(String userId) async {
+    final rows = await db.rpc('get_reviews', params: {'p_user': userId}) as List;
+    return rows.map((r) => Review.fromMap(r as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> submitReview(String bookingId, int stars, String comment) async {
+    await db.rpc('submit_review', params: {'p_booking': bookingId, 'p_stars': stars, 'p_comment': comment});
+  }
+
+  /// Bookings the signed-in member has already rated.
+  Future<Set<String>> myRatedBookingIds() async {
+    final rows = await db.from('reviews').select('booking_id').eq('reviewer_id', uid);
+    return rows.map((r) => r['booking_id']).whereType<String>().toSet();
+  }
+
+  String avatarUrl(String path) => db.storage.from('avatars').getPublicUrl(path);
+
+  Future<void> updateProfile({
+    required String phone,
+    required String area,
+    required String bio,
+    required String? avatarPath,
+  }) async {
+    await db.from('profiles').update({
+      'phone': phone,
+      'area': area,
+      'bio': bio,
+      'avatar_path': avatarPath,
+    }).eq('id', uid);
+  }
+
+  /// Removes the member's files, then the account and everything linked to it.
+  Future<void> deleteMyAccount() async {
+    for (final bucket in ['verification', 'slot-photos', 'avatars']) {
+      try {
+        final files = await db.storage.from(bucket).list(path: uid);
+        final paths = files.map((f) => '$uid/${f.name}').toList();
+        if (paths.isNotEmpty) await db.storage.from(bucket).remove(paths);
+      } catch (_) {}
+    }
+    await db.rpc('delete_my_account');
+    await db.auth.signOut();
+  }
+
   // ---------------------------------------------------------------- notifications
   Future<List<AppNotification>> notifications() async {
     final rows = await db
@@ -212,6 +327,41 @@ class Repo {
         .eq('status', 'pending')
         .order('submitted_at', ascending: true);
     return rows.map(Profile.fromMap).toList();
+  }
+
+  Future<List<Profile>> members({VerificationStatus? status, String? query}) async {
+    var q = db.from('profiles').select();
+    if (status != null) q = q.eq('status', status.name);
+    final text = query?.trim() ?? '';
+    if (text.isNotEmpty) {
+      final safe = text.replaceAll(RegExp(r'[,()%]'), ' ');
+      q = q.or('full_name.ilike.%$safe%,phone.ilike.%$safe%');
+    }
+    final rows = await q.order('created_at', ascending: false).limit(200);
+    return rows.map(Profile.fromMap).toList();
+  }
+
+  Future<void> setMemberStatus(String userId, {required bool suspend, String? reason}) async {
+    await db.rpc('set_member_status', params: {'p_user': userId, 'p_suspend': suspend, 'p_reason': reason});
+  }
+
+  Future<AdminOverview> adminOverview() async {
+    final data = await db.rpc('admin_overview');
+    return AdminOverview(Map<String, dynamic>.from(data as Map));
+  }
+
+  /// Every upcoming slot, with the host's name, for admins.
+  Future<List<Slot>> adminSlots() async {
+    final rows = await db
+        .from('slots')
+        .select('*, profiles!slots_host_id_fkey(full_name)')
+        .gte('ends_at', DateTime.now().toUtc().toIso8601String())
+        .order('starts_at')
+        .limit(300);
+    return rows.map((r) {
+      final host = r['profiles'];
+      return Slot.fromMap({...r, 'host_name': host is Map ? host['full_name'] : ''});
+    }).toList();
   }
 
   Future<String> verificationFileUrl(String path) =>

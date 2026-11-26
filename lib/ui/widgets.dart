@@ -31,6 +31,8 @@ String errorText(BuildContext context, Object e) {
   if (msg.contains('rate limit') || msg.contains('too many')) return t.errEmailLimit;
   if (msg.contains('sending') && msg.contains('email')) return t.errEmailSend;
   if (msg.contains('should be different')) return t.errSamePassword;
+  if (msg.contains('capacity below accepted')) return t.errCapacityBelowAccepted;
+  if (msg.contains('not finished')) return t.errNotFinished;
   if (e is StorageException) return '${t.errUpload}\n($raw)';
   if (e is AuthRetryableFetchException || msg.contains('failed to fetch') || msg.contains('socket')) {
     return t.errGeneric;
@@ -164,10 +166,11 @@ String priceText(BuildContext context, int amount) {
 
 /// A slot shown as a ticket: the date on a coloured stub, the details beside it.
 class SlotCard extends StatelessWidget {
-  const SlotCard({super.key, required this.slot, required this.onTap, this.trailing});
+  const SlotCard({super.key, required this.slot, required this.onTap, this.trailing, this.distanceKm});
   final Slot slot;
   final VoidCallback onTap;
   final Widget? trailing;
+  final double? distanceKm;
 
   @override
   Widget build(BuildContext context) {
@@ -218,14 +221,24 @@ class SlotCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, height: 1.25)),
                       const SizedBox(height: 2),
-                      Text(
-                        [slot.hostName, areaName(context, slot.area)]
-                            .where((s) => s.isNotEmpty)
-                            .join(Localizations.localeOf(context).languageCode == 'ar' ? '، ' : ', '),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 13, color: AppColors.muted),
-                      ),
+                      Row(children: [
+                        Flexible(
+                          child: Text(
+                            [
+                              slot.hostName,
+                              areaName(context, slot.area),
+                              if (distanceKm != null) t.kmAway(distanceKm!.toStringAsFixed(1)),
+                            ].where((s) => s.isNotEmpty).join(Localizations.localeOf(context).languageCode == 'ar' ? '، ' : ', '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13, color: AppColors.muted),
+                          ),
+                        ),
+                        if (slot.hostName.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          RatingLine(rating: slot.hostRating, count: slot.hostReviews, compact: true),
+                        ],
+                      ]),
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -342,4 +355,120 @@ class SectionTitle extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 10),
         child: Text(text, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
       );
+}
+
+/// "★ 4.8 (12)", or "New" for someone without ratings yet.
+class RatingLine extends StatelessWidget {
+  const RatingLine({super.key, required this.rating, required this.count, this.compact = false});
+  final double? rating;
+  final int count;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final size = compact ? 12.5 : 14.0;
+    if (count == 0 || rating == null) {
+      return Text(t.newHost, style: TextStyle(fontSize: size, fontWeight: FontWeight.w600, color: AppColors.muted));
+    }
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(Icons.star_rounded, size: size + 3, color: const Color(0xFFB7791F)),
+      const SizedBox(width: 2),
+      Text('${rating!.toStringAsFixed(1)} ($count)',
+          style: TextStyle(fontSize: size, fontWeight: FontWeight.w700, color: AppColors.ink)),
+    ]);
+  }
+}
+
+/// A round photo, or initials when there's no photo.
+class Avatar extends StatelessWidget {
+  const Avatar({super.key, required this.name, required this.photoUrl, this.radius = 20, this.dark = true});
+  final String name;
+  final String? photoUrl;
+  final double radius;
+  final bool dark;
+
+  @override
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: dark ? AppColors.ink : AppColors.nileTint,
+      foregroundColor: dark ? Colors.white : AppColors.nile,
+      foregroundImage: photoUrl == null ? null : NetworkImage(photoUrl!),
+      child: Text(initials(name), style: TextStyle(fontSize: radius * 0.7, fontWeight: FontWeight.w700)),
+    );
+  }
+}
+
+/// Swipeable photos with dots.
+class PhotoGallery extends StatefulWidget {
+  const PhotoGallery({super.key, required this.urls, required this.tint});
+  final List<String> urls;
+  final Color tint;
+
+  @override
+  State<PhotoGallery> createState() => _PhotoGalleryState();
+}
+
+class _PhotoGalleryState extends State<PhotoGallery> {
+  int _page = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: AspectRatio(
+        aspectRatio: 16 / 10,
+        child: Stack(children: [
+          PageView.builder(
+            itemCount: widget.urls.length,
+            onPageChanged: (i) => setState(() => _page = i),
+            itemBuilder: (context, i) => Image.network(
+              widget.urls[i],
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stack) => Container(color: widget.tint),
+            ),
+          ),
+          if (widget.urls.length > 1)
+            Positioned(
+              bottom: 10,
+              left: 0,
+              right: 0,
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                for (var i = 0; i < widget.urls.length; i++)
+                  Container(
+                    width: i == _page ? 18 : 7,
+                    height: 7,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: i == _page ? 1 : 0.6),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+              ]),
+            ),
+        ]),
+      ),
+    );
+  }
+}
+
+Future<bool> confirmAction(BuildContext context, {required String title, String? body, required String action, bool danger = false}) async {
+  final t = AppLocalizations.of(context);
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(title),
+      content: body == null ? null : Text(body, style: const TextStyle(height: 1.5)),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t.cancel)),
+        FilledButton(
+          style: danger ? FilledButton.styleFrom(backgroundColor: AppColors.danger, minimumSize: const Size(0, 44)) : FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(action),
+        ),
+      ],
+    ),
+  );
+  return ok == true;
 }

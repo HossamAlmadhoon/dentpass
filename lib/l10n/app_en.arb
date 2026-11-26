@@ -248,5 +248,149 @@
   "errEmailLimit": "Too many emails were sent just now. Wait an hour and try again.",
   "errEmailSend": "We couldn't send the email. Try again later.",
   "errSamePassword": "Choose a password different from your current one.",
-  "errUpload": "The photo couldn't be uploaded. Try another photo or try again."
+  "errUpload": "The photo couldn't be uploaded. Try another photo or try again.",
+  "search": "Search slots, hosts or topics",
+  "anyTime": "Any time",
+  "thisWeek": "This week",
+  "weekend": "Weekend",
+  "nearMe": "Near me",
+  "showMap": "Map",
+  "showList": "List",
+  "kmAway": "{km} km away",
+  "@kmAway": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "locationDenied": "Allow location access to sort by distance.",
+  "noPinsHere": "None of these slots has a map location yet.",
+  "approxLocation": "Approximate area. The exact spot is shared when the host accepts.",
+  "openInMaps": "Open in Maps",
+  "newHost": "New",
+  "reviewsCount": "Reviews: {count}",
+  "@reviewsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editSlot": "Edit slot",
+  "saveChanges": "Save changes",
+  "changesSaved": "Changes saved. People with a request were told.",
+  "deleteSlot": "Delete slot",
+  "deleteSlotConfirm": "Delete this slot? Everyone with a request will be told it's cancelled.",
+  "delete": "Delete",
+  "slotDeleted": "Slot deleted.",
+  "errCapacityBelowAccepted": "You've already accepted more people than that.",
+  "photos": "Photos (up to 6)",
+  "location": "Location on the map (optional)",
+  "setLocation": "Set location",
+  "changeLocation": "Change location",
+  "locationSet": "Location set",
+  "pickOnMap": "Tap the map to place the pin",
+  "useMyLocation": "Use my location",
+  "confirmLocation": "Use this location",
+  "removeLocation": "Remove location",
+  "rate": "Rate",
+  "rateHost": "Rate the host",
+  "rateMember": "Rate {name}",
+  "@rateMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "howWasIt": "How was it?",
+  "commentOptional": "Comment (optional)",
+  "sendRating": "Send rating",
+  "ratingSent": "Thanks, your rating was sent.",
+  "rated": "Rated",
+  "reviewsTitle": "Reviews",
+  "noReviews": "No reviews yet.",
+  "errNotFinished": "You can rate once the slot has ended.",
+  "memberSince": "Member since {date}",
+  "@memberSince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "hostedCount": "Slots hosted: {count}",
+  "@hostedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "attendedCount": "Slots attended: {count}",
+  "@attendedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "openSlots": "Upcoming slots",
+  "noOpenSlots": "No upcoming slots.",
+  "editProfile": "Edit profile",
+  "viewMyPage": "View my public page",
+  "bio": "About you",
+  "bioHint": "Your experience, specialty and what you offer",
+  "profilePhoto": "Profile photo",
+  "lockedDetails": "Your name, role and syndicate details were checked, so they can't be changed here.",
+  "profileSaved": "Profile saved.",
+  "deleteAccount": "Delete my account",
+  "deleteAccountConfirm": "This permanently deletes your account, your slots, bookings and photos. It can't be undone.",
+  "suspendedTitle": "Your account is suspended",
+  "suspendedBody": "Contact DentPass if you think this is a mistake.",
+  "adminWaiting": "Waiting",
+  "adminMembers": "Members",
+  "adminSlots": "Slots",
+  "adminOverview": "Overview",
+  "searchMembers": "Search by name or phone",
+  "statusSuspended": "Suspended",
+  "statusRejected": "Rejected",
+  "suspend": "Suspend",
+  "reinstate": "Reinstate",
+  "suspendReason": "Reason for suspending",
+  "removeSlot": "Remove slot",
+  "ovMembers": "Approved members",
+  "ovWaiting": "Waiting for review",
+  "ovOpenSlots": "Upcoming open slots",
+  "ovBookings": "Requests, last 30 days",
+  "ovAccepted": "Accepted, last 30 days",
+  "ovFees": "DentPass fees, last 30 days (EGP)",
+  "noMembers": "No members found.",
+  "nUpdated": "The host changed \"{title}\". Check the new details.",
+  "@nUpdated": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "nSlotCancelled": "\"{title}\" was cancelled by the host",
+  "@nSlotCancelled": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "nReview": "You received a new rating for \"{title}\"",
+  "@nReview": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "nSuspended": "Your account was suspended.",
+  "nReinstated": "Your account is active again."
 }

@@ -4,6 +4,7 @@ import 'package:dentpass/data/models.dart';
 import 'package:dentpass/data/repo.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
 import 'package:dentpass/screens/manage_slot_screen.dart';
+import 'package:dentpass/screens/member_screen.dart';
 import 'package:dentpass/screens/slot_detail_screen.dart';
 import 'package:dentpass/theme.dart';
 import 'package:dentpass/ui/format.dart';
@@ -33,21 +34,29 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         'booking_cancelled' => t.nCancelled(n.slotTitle),
         'verification_approved' => t.nApproved,
         'verification_rejected' => t.nRejected,
+        'slot_updated' => t.nUpdated(n.slotTitle),
+        'slot_cancelled' => t.nSlotCancelled(n.slotTitle),
+        'review_received' => t.nReview(n.slotTitle),
+        'account_suspended' => t.nSuspended,
+        'account_reinstated' => t.nReinstated,
         _ => n.type,
       };
 
+  bool _canOpen(AppNotification n) => n.type == 'review_received' || n.slotId != null;
+
   void _open(AppNotification n) {
     final slotId = n.slotId;
-    if (slotId == null) return;
-    final hostSide = n.type == 'booking_requested' || n.type == 'booking_cancelled';
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => hostSide
-            ? ManageSlotScreen(slotId: slotId)
-            : SlotDetailScreen(slotId: slotId, profile: widget.profile),
-      ),
-    );
+    final Widget screen;
+    if (n.type == 'review_received') {
+      screen = MemberScreen(userId: widget.profile.id, viewer: widget.profile);
+    } else if (slotId == null) {
+      return;
+    } else if (n.type == 'booking_requested' || n.type == 'booking_cancelled') {
+      screen = ManageSlotScreen(slotId: slotId, profile: widget.profile);
+    } else {
+      screen = SlotDetailScreen(slotId: slotId, profile: widget.profile);
+    }
+    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
   }
 
   @override
@@ -78,7 +87,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 title: Text(_text(t, n),
                     style: TextStyle(fontSize: 15, fontWeight: n.read ? FontWeight.w500 : FontWeight.w700)),
                 subtitle: Text('${fullDate(context, n.createdAt)} ${time(context, n.createdAt)}'),
-                onTap: n.slotId == null ? null : () => _open(n),
+                onTap: _canOpen(n) ? () => _open(n) : null,
               );
             },
           );

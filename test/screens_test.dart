@@ -8,8 +8,10 @@ import 'package:dentpass/data/models.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
 import 'package:dentpass/locale_controller.dart';
 import 'package:dentpass/screens/booking_review_sheet.dart';
+import 'package:dentpass/screens/edit_profile_screen.dart';
 import 'package:dentpass/screens/password_screens.dart';
 import 'package:dentpass/screens/post_slot_screen.dart';
+import 'package:dentpass/screens/review_sheet.dart';
 import 'package:dentpass/screens/sign_in_screen.dart';
 import 'package:dentpass/ui/widgets.dart';
 
@@ -112,6 +114,64 @@ void main() {
       await tester.pumpAndSettle();
       final t = lookupAppLocalizations(Locale(lang));
       expect(find.text(t.reviewTotal), findsOneWidget);
+      restore();
+    });
+
+    testWidgets('edit a posted slot ($lang)', (tester) async {
+      await _phone(tester);
+      final restore = _ignoreOverflow();
+      final existing = Slot.fromMap({
+        'id': 'e1', 'host_id': 'h', 'kind': 'cover', 'title': 'Evening shift', 'description': 'Fillings and scaling',
+        'area': 'maadi', 'address': '9 Road 233', 'starts_at': '2030-03-02T14:00:00Z', 'ends_at': '2030-03-02T20:00:00Z',
+        'capacity': 1, 'price_egp': 900, 'need_role': 'dentist', 'lat': 29.96, 'lng': 31.25, 'exact_location': true,
+      });
+      await tester.pumpWidget(_app(PostSlotScreen(existing: existing, onPosted: () {}), lang));
+      await tester.pumpAndSettle();
+      final t = lookupAppLocalizations(Locale(lang));
+      expect(find.text(t.editSlot), findsOneWidget);
+      expect(find.text('Evening shift'), findsOneWidget);
+      expect(find.text(t.whatPosting), findsNothing, reason: 'the type is fixed when editing');
+      expect(find.text(t.changeLocation), findsOneWidget);
+      restore();
+    });
+
+    testWidgets('edit profile ($lang)', (tester) async {
+      await _phone(tester);
+      final restore = _ignoreOverflow();
+      final me = Profile.fromMap({
+        'id': 'me', 'full_name': 'Dr. Mariam Adel', 'phone': '01012345678', 'role': 'dentist', 'area': 'nasr_city',
+        'status': 'approved', 'bio': 'General dentist',
+      });
+      await tester.pumpWidget(_app(EditProfileScreen(profile: me), lang));
+      await tester.pumpAndSettle();
+      final t = lookupAppLocalizations(Locale(lang));
+      expect(find.text(t.lockedDetails), findsOneWidget);
+      expect(find.text('General dentist'), findsOneWidget);
+      restore();
+    });
+
+    testWidgets('rating sheet needs at least one star ($lang)', (tester) async {
+      await _phone(tester);
+      final restore = _ignoreOverflow();
+      await tester.pumpWidget(_app(
+        Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showReviewSheet(context, bookingId: 'b1', title: 'Rate the host'),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+        lang,
+      ));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      final t = lookupAppLocalizations(Locale(lang));
+      final send = find.widgetWithText(FilledButton, t.sendRating);
+      expect(tester.widget<FilledButton>(send).onPressed, isNull);
+      await tester.tap(find.byIcon(Icons.star_outline_rounded).at(3));
+      await tester.pumpAndSettle();
+      expect(tester.widget<FilledButton>(send).onPressed, isNotNull);
       restore();
     });
 

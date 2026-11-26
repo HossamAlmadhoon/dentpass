@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
 
 import 'package:dentpass/data/areas.dart';
 import 'package:dentpass/data/models.dart';
@@ -9,11 +10,24 @@ import 'package:dentpass/l10n/app_localizations.dart';
 import 'package:dentpass/theme.dart';
 import 'package:dentpass/ui/format.dart';
 import 'package:dentpass/ui/kinds.dart';
+import 'package:dentpass/ui/maps.dart';
 import 'package:dentpass/ui/widgets.dart';
 
+const _maxPhotos = 6;
+
+/// A photo on the form: one already saved (a path) or one just picked (a file).
+class _Photo {
+  _Photo.saved(this.path) : file = null;
+  _Photo.picked(this.file) : path = null;
+  final String? path;
+  final XFile? file;
+}
+
+/// Post a new slot, or edit one ([existing]) after posting.
 class PostSlotScreen extends StatefulWidget {
-  const PostSlotScreen({super.key, required this.onPosted});
+  const PostSlotScreen({super.key, required this.onPosted, this.existing});
   final VoidCallback onPosted;
+  final Slot? existing;
 
   @override
   State<PostSlotScreen> createState() => _PostSlotScreenState();
@@ -21,20 +35,24 @@ class PostSlotScreen extends StatefulWidget {
 
 class _PostSlotScreenState extends State<PostSlotScreen> {
   final _form = GlobalKey<FormState>();
-  final _title = TextEditingController();
-  final _details = TextEditingController();
-  final _address = TextEditingController();
-  final _price = TextEditingController();
-  SlotKind _kind = SlotKind.observe;
-  String? _area;
-  DateTime? _date;
-  TimeOfDay _from = const TimeOfDay(hour: 10, minute: 0);
-  TimeOfDay _to = const TimeOfDay(hour: 14, minute: 0);
-  int _capacity = 3;
-  MemberRole _needRole = MemberRole.dentist;
-  XFile? _photo;
+  late final Slot? _old = widget.existing;
+  late final _title = TextEditingController(text: _old?.title ?? '');
+  late final _details = TextEditingController(text: _old?.description ?? '');
+  late final _address = TextEditingController(text: _old?.address ?? '');
+  late final _price = TextEditingController(text: _old == null ? '' : '${_old!.priceEgp}');
+  late SlotKind _kind = _old?.kind ?? SlotKind.observe;
+  late String? _area = _old?.area;
+  late DateTime? _date = _old?.startsAt;
+  late TimeOfDay _from = _old == null ? const TimeOfDay(hour: 10, minute: 0) : TimeOfDay.fromDateTime(_old!.startsAt);
+  late TimeOfDay _to = _old == null ? const TimeOfDay(hour: 14, minute: 0) : TimeOfDay.fromDateTime(_old!.endsAt);
+  late int _capacity = _old?.capacity ?? 3;
+  late MemberRole _needRole = _old?.needRole ?? MemberRole.dentist;
+  late final List<_Photo> _photos = [for (final p in _old?.photoPaths ?? const <String>[]) _Photo.saved(p)];
+  late LatLng? _location = (_old != null && _old!.hasLocation) ? LatLng(_old!.lat!, _old!.lng!) : null;
   bool _busy = false;
   String? _error;
+
+  bool get _editing => _old != null;
 
   @override
   void dispose() {
@@ -54,10 +72,11 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
+    final first = DateTime(now.year, now.month, now.day);
     final d = await showDatePicker(
       context: context,
-      initialDate: _date ?? now.add(const Duration(days: 1)),
-      firstDate: DateTime(now.year, now.month, now.day),
+      initialDate: (_date != null && !_date!.isBefore(first)) ? _date! : now.add(const Duration(days: 1)),
+      firstDate: first,
       lastDate: now.add(const Duration(days: 365)),
     );
     if (d != null) setState(() => _date = d);
@@ -73,6 +92,20 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
         _to = picked;
       }
     });
+  }
+
+  Future<void> _addPhoto() async {
+    final files = await ImagePicker().pickMultiImage(imageQuality: 80, maxWidth: 1600, limit: _maxPhotos - _photos.length);
+    if (files.isEmpty) return;
+    setState(() => _photos.addAll(files.take(_maxPhotos - _photos.length).map(_Photo.picked)));
+  }
+
+  Future<void> _pickLocation() async {
+    final p = await Navigator.push<LatLng>(
+      context,
+      MaterialPageRoute(builder: (_) => LocationPickerScreen(initial: _location)),
+    );
+    if (p != null) setState(() => _location = p);
   }
 
   Future<void> _submit() async {
@@ -96,23 +129,50 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
 
     setState(() => _busy = true);
     try {
-      String? photoPath;
-      if (_photo != null) {
-        photoPath = await repo.uploadImage('slot-photos', '${DateTime.now().millisecondsSinceEpoch}.jpg', _photo!);
+      final paths = <String>[];
+      var n = 0;
+      for (final p in _photos) {
+        if (p.path != null) {
+          paths.add(p.path!);
+        } else {
+          n++;
+          paths.add(await repo.uploadImage('slot-photos', '${DateTime.now().millisecondsSinceEpoch}-$n.jpg', p.file!));
+        }
       }
-      await repo.createSlot(
-        kind: _kind,
-        title: _title.text.trim(),
-        description: _details.text.trim(),
-        area: _area!,
-        address: _address.text.trim(),
-        startsAt: start,
-        endsAt: end,
-        capacity: _capacity,
-        priceEgp: int.tryParse(_price.text) ?? 0,
-        needRole: _kind == SlotKind.cover ? _needRole : null,
-        photoPath: photoPath,
-      );
+      if (_editing) {
+        await repo.updateSlot(
+          _old!.id,
+          title: _title.text.trim(),
+          description: _details.text.trim(),
+          area: _area!,
+          address: _address.text.trim(),
+          startsAt: start,
+          endsAt: end,
+          capacity: _capacity,
+          priceEgp: int.tryParse(_price.text) ?? 0,
+          needRole: _kind == SlotKind.cover ? _needRole : null,
+          photoPaths: paths,
+          lat: _location?.latitude,
+          lng: _location?.longitude,
+        );
+        await repo.removeSlotPhotos(_old!.photoPaths.where((p) => !paths.contains(p)).toList());
+      } else {
+        await repo.createSlot(
+          kind: _kind,
+          title: _title.text.trim(),
+          description: _details.text.trim(),
+          area: _area!,
+          address: _address.text.trim(),
+          startsAt: start,
+          endsAt: end,
+          capacity: _capacity,
+          priceEgp: int.tryParse(_price.text) ?? 0,
+          needRole: _kind == SlotKind.cover ? _needRole : null,
+          photoPaths: paths,
+          lat: _location?.latitude,
+          lng: _location?.longitude,
+        );
+      }
       widget.onPosted();
     } catch (e) {
       if (mounted) setState(() => _error = errorText(context, e));
@@ -136,25 +196,38 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
     };
 
     return Scaffold(
-      appBar: AppBar(title: Text(t.postTitle, style: const TextStyle(fontWeight: FontWeight.w800))),
+      appBar: AppBar(
+        title: Text(_editing ? t.editSlot : t.postTitle, style: const TextStyle(fontWeight: FontWeight.w800)),
+      ),
       body: Form(
         key: _form,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
           children: [
-            Text(t.postIntro, style: const TextStyle(fontSize: 15, color: AppColors.muted)),
-            const SizedBox(height: 20),
-            SectionTitle(t.whatPosting),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 1.9,
-              children: [for (final k in SlotKind.values) _KindOption(kind: k, selected: _kind == k, onTap: () => _setKind(k))],
-            ),
-            const SizedBox(height: 22),
+            if (!_editing) ...[
+              Text(t.postIntro, style: const TextStyle(fontSize: 15, color: AppColors.muted)),
+              const SizedBox(height: 20),
+              SectionTitle(t.whatPosting),
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+                childAspectRatio: 1.9,
+                children: [
+                  for (final k in SlotKind.values) _KindOption(kind: k, selected: _kind == k, onTap: () => _setKind(k)),
+                ],
+              ),
+              const SizedBox(height: 22),
+            ] else ...[
+              Row(children: [
+                Icon(kindStyle(_kind).icon, color: kindStyle(_kind).ink),
+                const SizedBox(width: 8),
+                Text(kindName(t, _kind), style: TextStyle(fontWeight: FontWeight.w700, color: kindStyle(_kind).ink)),
+              ]),
+              const SizedBox(height: 16),
+            ],
             TextFormField(
               controller: _title,
               maxLength: 120,
@@ -170,6 +243,14 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
               decoration: InputDecoration(labelText: t.description, hintText: t.descriptionHint, alignLabelWithHint: true),
             ),
             const SizedBox(height: 6),
+            SectionTitle(t.photos),
+            _PhotoGrid(
+              photos: _photos,
+              canAdd: _photos.length < _maxPhotos,
+              onAdd: _addPhoto,
+              onRemove: (i) => setState(() => _photos.removeAt(i)),
+            ),
+            const SizedBox(height: 18),
             DropdownButtonFormField<String>(
               initialValue: _area,
               decoration: InputDecoration(labelText: t.area),
@@ -184,6 +265,25 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
               decoration: InputDecoration(labelText: t.address, helperText: t.addressHint),
             ),
             const SizedBox(height: 12),
+            SectionTitle(t.location),
+            Row(children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _pickLocation,
+                  icon: Icon(_location == null ? Icons.add_location_alt_outlined : Icons.check_circle, color: _location == null ? null : AppColors.nile),
+                  label: Text(_location == null ? t.setLocation : t.changeLocation),
+                ),
+              ),
+              if (_location != null) ...[
+                const SizedBox(width: 8),
+                IconButton(
+                  tooltip: t.removeLocation,
+                  onPressed: () => setState(() => _location = null),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ]),
+            const SizedBox(height: 16),
             SectionTitle(t.date),
             OutlinedButton.icon(
               onPressed: _pickDate,
@@ -235,8 +335,6 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
               decoration: InputDecoration(labelText: priceLabel),
               validator: (v) => (v == null || v.isEmpty) ? t.required : null,
             ),
-            const SizedBox(height: 16),
-            PhotoPickTile(label: t.photo, hasPhoto: _photo != null, onPicked: (f) => setState(() => _photo = f)),
             if (_error != null) ...[
               const SizedBox(height: 14),
               Text(_error!, style: const TextStyle(color: AppColors.danger, fontWeight: FontWeight.w600)),
@@ -246,11 +344,74 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
               onPressed: _busy ? null : _submit,
               child: _busy
                   ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
-                  : Text(t.postIt),
+                  : Text(_editing ? t.saveChanges : t.postIt),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _PhotoGrid extends StatelessWidget {
+  const _PhotoGrid({required this.photos, required this.canAdd, required this.onAdd, required this.onRemove});
+  final List<_Photo> photos;
+  final bool canAdd;
+  final VoidCallback onAdd;
+  final ValueChanged<int> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    Widget thumb(_Photo p) => p.path != null
+        ? Image.network(repo.photoUrl(p.path!), fit: BoxFit.cover,
+            errorBuilder: (context, error, stack) => Container(color: AppColors.track))
+        : FutureBuilder(
+            future: p.file!.readAsBytes(),
+            builder: (context, snap) =>
+                snap.hasData ? Image.memory(snap.data!, fit: BoxFit.cover) : Container(color: AppColors.track),
+          );
+
+    return GridView.count(
+      crossAxisCount: 3,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 8,
+      children: [
+        for (var i = 0; i < photos.length; i++)
+          Stack(fit: StackFit.expand, children: [
+            ClipRRect(borderRadius: BorderRadius.circular(12), child: thumb(photos[i])),
+            PositionedDirectional(
+              top: 4,
+              end: 4,
+              child: IconButton.filled(
+                style: IconButton.styleFrom(backgroundColor: Colors.black54, minimumSize: const Size(32, 32)),
+                iconSize: 18,
+                tooltip: AppLocalizations.of(context).delete,
+                onPressed: () => onRemove(i),
+                icon: const Icon(Icons.close, color: Colors.white),
+              ),
+            ),
+          ]),
+        if (canAdd)
+          Material(
+            color: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: AppColors.field, width: 1.5),
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: onAdd,
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                const Icon(Icons.add_a_photo_outlined, color: AppColors.muted),
+                const SizedBox(height: 4),
+                Text(t.addPhoto, style: const TextStyle(fontSize: 12.5, color: AppColors.muted)),
+              ]),
+            ),
+          ),
+      ],
     );
   }
 }
