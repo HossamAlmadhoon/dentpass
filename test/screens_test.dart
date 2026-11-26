@@ -329,7 +329,7 @@ void main() {
       expect(find.byType(VerifyScreen), findsOneWidget);
       expect(find.text(t.verifyTitle), findsOneWidget);
       expect(find.text(t.syndicateNo), findsOneWidget);
-      await tester.pageBack();
+      tester.state<NavigatorState>(find.byType(Navigator)).pop();
       await tester.pumpAndSettle();
       expect(find.byType(VerifyScreen), findsNothing);
       restore();
