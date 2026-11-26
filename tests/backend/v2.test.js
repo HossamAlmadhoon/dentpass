@@ -62,7 +62,7 @@ test('DentPass version 2', async () => {
     capacity: 2, price_egp: 1200, need_role: null, lat: 30.091234, lng: 31.322345,
   };
   ok(await host.c.from('slots').insert({ ...base, kind: 'observe', title: `Sinus lift ${run}`, photo_paths: photos, starts_at: inDays(3), ends_at: inDays(3, 3) }), 'post with photos and location');
-  ok(await host.c.from('slots').insert({ ...base, kind: 'course', title: `Composite course ${run}`, photo_paths: [], starts_at: inDays(20), ends_at: inDays(20, 6) }), 'post a later course');
+  ok(await host.c.from('slots').insert({ ...base, kind: 'course', title: `Composite course ${run}`, description: 'Hands-on veneers', photo_paths: [], starts_at: inDays(20), ends_at: inDays(20, 6) }), 'post a later course');
 
   // ---- Search, dates and host filter
   const byWord = ok(await guest.c.rpc('get_feed', { p_kind: null, p_area: null, p_query: 'sinus', p_from: null, p_to: null, p_host: null }), 'search by word');
