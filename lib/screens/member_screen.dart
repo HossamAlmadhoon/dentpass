@@ -69,7 +69,12 @@ class _MemberScreenState extends State<MemberScreen> {
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(member.fullName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+                      NameWithMark(
+                        name: member.fullName,
+                        verified: member.verified,
+                        markSize: 20,
+                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                      ),
                       Text(
                         [roleName(t, member.role), areaName(context, member.area)]
                             .where((s) => s.isNotEmpty)
@@ -77,11 +82,14 @@ class _MemberScreenState extends State<MemberScreen> {
                         style: const TextStyle(color: AppColors.muted),
                       ),
                       const SizedBox(height: 4),
-                      Row(children: [
-                        const Icon(Icons.verified, size: 16, color: AppColors.nile),
-                        const SizedBox(width: 4),
-                        Text(t.syndicateChecked, style: const TextStyle(fontSize: 13, color: AppColors.nile, fontWeight: FontWeight.w600)),
-                      ]),
+                      if (member.verified)
+                        Row(children: [
+                          const Icon(Icons.verified, size: 16, color: AppColors.nile),
+                          const SizedBox(width: 4),
+                          Text(t.syndicateChecked, style: const TextStyle(fontSize: 13, color: AppColors.nile, fontWeight: FontWeight.w600)),
+                        ])
+                      else
+                        Text(t.notVerifiedYet, style: const TextStyle(fontSize: 13, color: AppColors.amber, fontWeight: FontWeight.w600)),
                     ]),
                   ),
                 ]),

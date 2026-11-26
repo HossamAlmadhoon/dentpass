@@ -472,3 +472,34 @@ Future<bool> confirmAction(BuildContext context, {required String title, String?
   );
   return ok == true;
 }
+
+/// The small check shown next to members whose syndicate card and ID were approved.
+class VerifiedMark extends StatelessWidget {
+  const VerifiedMark({super.key, this.size = 16});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: AppLocalizations.of(context).verifiedMark,
+      child: Icon(Icons.verified, size: size, color: AppColors.nile, semanticLabel: AppLocalizations.of(context).verifiedMark),
+    );
+  }
+}
+
+/// A name, followed by the verified mark when the member is verified.
+class NameWithMark extends StatelessWidget {
+  const NameWithMark({super.key, required this.name, required this.verified, this.style, this.markSize = 16});
+  final String name;
+  final bool verified;
+  final TextStyle? style;
+  final double markSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Flexible(child: Text(name, style: style, overflow: TextOverflow.ellipsis)),
+      if (verified) ...[const SizedBox(width: 5), VerifiedMark(size: markSize)],
+    ]);
+  }
+}

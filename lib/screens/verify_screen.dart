@@ -5,17 +5,16 @@ import 'package:dentpass/data/areas.dart';
 import 'package:dentpass/data/models.dart';
 import 'package:dentpass/data/repo.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
-import 'package:dentpass/screens/info_screens.dart';
 import 'package:dentpass/screens/profile_screen.dart';
 import 'package:dentpass/theme.dart';
 import 'package:dentpass/ui/kinds.dart';
 import 'package:dentpass/ui/widgets.dart';
 
-/// New members (or rejected ones) send their details and documents for checking.
+/// Members send their syndicate card and ID, whenever they like, to get the verified mark.
+/// Closes with `true` once the papers are sent.
 class VerifyScreen extends StatefulWidget {
-  const VerifyScreen({super.key, required this.profile, required this.onSubmitted});
+  const VerifyScreen({super.key, required this.profile});
   final Profile profile;
-  final VoidCallback onSubmitted;
 
   @override
   State<VerifyScreen> createState() => _VerifyScreenState();
@@ -31,8 +30,6 @@ class _VerifyScreenState extends State<VerifyScreen> {
   XFile? _card;
   XFile? _id;
   bool _busy = false;
-  bool _agreed = false;
-  bool _triedSubmit = false;
   String? _error;
 
   bool get _hasCard => _card != null || widget.profile.cardPath != null;
@@ -50,12 +47,10 @@ class _VerifyScreenState extends State<VerifyScreen> {
     final t = AppLocalizations.of(context);
     final formOk = _form.currentState!.validate();
     final docsOk = _hasId && (_role == MemberRole.assistant || _hasCard);
-    setState(() => _triedSubmit = true);
     if (!formOk || !docsOk || _area == null) {
       setState(() => _error = t.required);
       return;
     }
-    if (!_agreed) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -67,7 +62,6 @@ class _VerifyScreenState extends State<VerifyScreen> {
         cardPath = await repo.uploadImage('verification', 'syndicate_card.jpg', _card!, replace: true);
       }
       if (_id != null) idPath = await repo.uploadImage('verification', 'national_id.jpg', _id!, replace: true);
-      await repo.acceptTerms();
       await repo.submitVerification(
         fullName: _name.text.trim(),
         phone: _phone.text.trim(),
@@ -77,7 +71,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
         cardPath: cardPath,
         idPath: idPath!,
       );
-      widget.onSubmitted();
+      if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) setState(() => _error = errorText(context, e));
     } finally {
@@ -94,10 +88,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(t.verifyTitle, style: const TextStyle(fontWeight: FontWeight.w800)),
-        actions: [
-          const LanguageSwitchButton(),
-          IconButton(tooltip: t.signOut, icon: const Icon(Icons.logout), onPressed: repo.signOut),
-        ],
+        actions: const [LanguageSwitchButton()],
       ),
       body: SafeArea(
         child: Form(
@@ -167,8 +158,6 @@ class _VerifyScreenState extends State<VerifyScreen> {
                 const SizedBox(height: 10),
               ],
               PhotoPickTile(label: t.nationalId, hasPhoto: _hasId, onPicked: (f) => setState(() => _id = f)),
-              const SizedBox(height: 12),
-              TermsAgreement(value: _agreed, onChanged: (v) => setState(() => _agreed = v), showError: _triedSubmit),
               if (_error != null) ...[
                 const SizedBox(height: 14),
                 Text(_error!, style: const TextStyle(color: AppColors.danger, fontWeight: FontWeight.w600)),

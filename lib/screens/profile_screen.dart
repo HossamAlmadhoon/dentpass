@@ -11,6 +11,7 @@ import 'package:dentpass/screens/edit_profile_screen.dart';
 import 'package:dentpass/screens/info_screens.dart';
 import 'package:dentpass/screens/member_screen.dart';
 import 'package:dentpass/screens/password_screens.dart';
+import 'package:dentpass/screens/verify_gate.dart';
 import 'package:dentpass/services/notifications.dart';
 import 'package:dentpass/theme.dart';
 import 'package:dentpass/ui/kinds.dart';
@@ -125,9 +126,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 4),
                 Row(children: [
-                  const Icon(Icons.verified, size: 16, color: AppColors.nile),
-                  const SizedBox(width: 4),
-                  Text(t.statusApproved, style: const TextStyle(color: AppColors.nile, fontWeight: FontWeight.w700)),
+                  if (p.isVerified) ...[
+                    const Icon(Icons.verified, size: 16, color: AppColors.nile),
+                    const SizedBox(width: 4),
+                    Text(t.statusApproved, style: const TextStyle(color: AppColors.nile, fontWeight: FontWeight.w700)),
+                  ] else
+                    Text(
+                      p.status == VerificationStatus.pending ? t.papersCheckingShort : t.statusNotVerified,
+                      style: const TextStyle(color: AppColors.amber, fontWeight: FontWeight.w700),
+                    ),
                   const SizedBox(width: 10),
                   FutureBuilder<Member?>(
                     future: _me,
@@ -140,6 +147,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ]),
           const SizedBox(height: 20),
+          if (!p.isVerified && p.status != VerificationStatus.pending) ...[
+            FilledButton.icon(
+              onPressed: () => openVerify(context, p, widget.onChanged),
+              icon: const Icon(Icons.verified_outlined),
+              label: Text(p.status == VerificationStatus.rejected ? t.sendAgain : t.getVerified),
+            ),
+            const SizedBox(height: 10),
+          ],
           Row(children: [
             Expanded(
               child: OutlinedButton.icon(

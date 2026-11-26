@@ -216,9 +216,13 @@ class _RequestTile extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(r.fullName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                Row(children: [
+                NameWithMark(name: r.fullName, verified: r.verified, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
                   Text(roleName(t, r.role), style: const TextStyle(fontSize: 13, color: AppColors.muted)),
+                  if (!r.verified) ...[
+                    const SizedBox(width: 8),
+                    Text(t.notVerifiedYet, style: const TextStyle(fontSize: 13, color: AppColors.amber, fontWeight: FontWeight.w600)),
+                  ],
                   const SizedBox(width: 8),
                   RatingLine(rating: r.rating, count: r.reviews, compact: true),
                 ]),

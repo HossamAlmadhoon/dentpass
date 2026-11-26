@@ -8,6 +8,7 @@ import 'package:dentpass/l10n/app_localizations.dart';
 import 'package:dentpass/screens/home_header.dart';
 import 'package:dentpass/screens/notifications_screen.dart';
 import 'package:dentpass/screens/slot_detail_screen.dart';
+import 'package:dentpass/screens/verify_gate.dart';
 import 'package:dentpass/services/location.dart';
 import 'package:dentpass/theme.dart';
 import 'package:dentpass/ui/feedback.dart';
@@ -36,9 +37,12 @@ List<SlotKind>? _kindsFor(_Filter f) => switch (f) {
 }
 
 class ExploreScreen extends StatefulWidget {
-  const ExploreScreen({super.key, required this.profile, required this.onPostSlot});
+  const ExploreScreen({super.key, required this.profile, required this.onPostSlot, this.onProfileChanged});
   final Profile profile;
   final VoidCallback onPostSlot;
+
+  /// Reloads the member's profile, for example after sending papers.
+  final VoidCallback? onProfileChanged;
 
   @override
   State<ExploreScreen> createState() => _ExploreScreenState();
@@ -339,6 +343,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
               children: [
                 HomeHeader(profile: widget.profile, refreshKey: _refreshKey),
+                VerifyBanner(profile: widget.profile, onChanged: widget.onProfileChanged ?? () {}),
                 const SizedBox(height: 8),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),

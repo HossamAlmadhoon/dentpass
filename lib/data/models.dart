@@ -68,6 +68,12 @@ class Profile {
         bio: (m['bio'] as String?) ?? '',
         avatarPath: m['avatar_path'] as String?,
       );
+
+  /// Papers checked and approved: shows the verified mark and may post slots.
+  bool get isVerified => status == VerificationStatus.approved;
+
+  /// Name and mobile filled in: enough to browse and book.
+  bool get hasBasics => fullName.trim().isNotEmpty && (phone ?? '').trim().isNotEmpty;
 }
 
 class Slot {
@@ -218,10 +224,12 @@ class SlotRequest {
     required this.fullName,
     required this.role,
     required this.phone,
+    this.verified = false,
   });
 
   final String id;
   final String userId;
+  final bool verified;
   final double? rating;
   final int reviews;
   final bool reviewed;
@@ -242,6 +250,7 @@ class SlotRequest {
         fullName: (m['full_name'] as String?) ?? '',
         role: _enum(MemberRole.values, m['role'], MemberRole.dentist),
         phone: m['phone'] as String?,
+        verified: (m['verified'] as bool?) ?? false,
       );
 }
 
@@ -288,10 +297,12 @@ class Member {
     required this.reviews,
     required this.hosted,
     required this.attended,
+    this.verified = false,
   });
 
   final String id;
   final String fullName;
+  final bool verified;
   final MemberRole role;
   final String area;
   final String bio;
@@ -314,6 +325,7 @@ class Member {
         reviews: _int(m['reviews']),
         hosted: _int(m['hosted']),
         attended: _int(m['attended']),
+        verified: (m['verified'] as bool?) ?? false,
       );
 }
 

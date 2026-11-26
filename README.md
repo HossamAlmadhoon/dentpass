@@ -27,8 +27,8 @@ Built with **Flutter** (one codebase for Android and iPhone) and **Supabase** (d
 ### Screens
 
 1. **Sign in / create account**, with **Forgot password?**
-2. **Verification**: name, mobile, dentist or assistant, syndicate number, area, photos of the syndicate card and national ID
-3. **Waiting for approval** (and a clear message if an account is suspended)
+2. **Basic details**: name, mobile, dentist or assistant, area. That's enough to browse, book, rate and set alerts
+3. **Verified mark (optional, any time)**: syndicate number and photos of the syndicate card and national ID. Once an admin approves them the member shows a verified mark, and only verified members can post slots. Hosts see who is verified on each request. Suspended accounts get a clear message
 4. **Explore**: search by word or host, filter by type, date (this week, the weekend, a chosen day) and area, sort by **Near me**, and switch between a list and a **map**
 5. **Slot details**: photos, when, where, price, places left, the host's rating, and a map. The exact address, map pin and the host's phone appear only after the host accepts; before that the map shows an area of about 1 km.
 6. **Review and confirm**: price, DentPass fee and total, an optional message, then "Send request"

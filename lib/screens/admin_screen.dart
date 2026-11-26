@@ -226,7 +226,7 @@ class _MembersState extends State<_Members> {
 
   Future<void> _toggle(Profile p) async {
     final t = AppLocalizations.of(context);
-    final suspend = p.status == VerificationStatus.approved;
+    final suspend = p.status != VerificationStatus.suspended;
     String? reason;
     if (suspend) {
       reason = await _askReason(context, t.suspendReason);
@@ -245,6 +245,7 @@ class _MembersState extends State<_Members> {
     final t = AppLocalizations.of(context);
     final filters = {
       VerificationStatus.approved: t.statusApproved,
+      VerificationStatus.unverified: t.statusNotVerified,
       VerificationStatus.suspended: t.statusSuspended,
       VerificationStatus.rejected: t.statusRejected,
     };
@@ -295,8 +296,7 @@ class _MembersState extends State<_Members> {
                 separatorBuilder: (_, i) => const Divider(),
                 itemBuilder: (context, i) {
                   final p = items[i];
-                  final canToggle = !p.isAdmin &&
-                      (p.status == VerificationStatus.approved || p.status == VerificationStatus.suspended);
+                  final canToggle = !p.isAdmin;
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     child: Row(children: [
@@ -304,7 +304,7 @@ class _MembersState extends State<_Members> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(p.fullName, style: const TextStyle(fontWeight: FontWeight.w700)),
+                          NameWithMark(name: p.fullName, verified: p.isVerified, style: const TextStyle(fontWeight: FontWeight.w700)),
                           Text(_memberLine(context, p), style: const TextStyle(fontSize: 13, color: AppColors.muted)),
                           if (p.phone != null)
                             Text(p.phone!, textDirection: TextDirection.ltr, style: const TextStyle(fontSize: 13, color: AppColors.muted)),
@@ -316,7 +316,7 @@ class _MembersState extends State<_Members> {
                         OutlinedButton(
                           style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
                           onPressed: () => _toggle(p),
-                          child: Text(p.status == VerificationStatus.approved ? t.suspend : t.reinstate),
+                          child: Text(p.status == VerificationStatus.suspended ? t.reinstate : t.suspend),
                         ),
                     ]),
                   );
@@ -424,6 +424,7 @@ class _OverviewState extends State<_Overview> {
         final o = snap.data!;
         final rows = [
           (t.ovMembers, o.count('members')),
+          (t.statusNotVerified, o.count('unverified')),
           (t.ovWaiting, o.count('waiting')),
           (t.statusSuspended, o.count('suspended')),
           (t.ovOpenSlots, o.count('open_slots')),

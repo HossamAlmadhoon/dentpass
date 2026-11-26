@@ -92,6 +92,22 @@ class Repo {
     }).eq('id', uid);
   }
 
+  /// The few details needed to start: name, mobile, role and area. Papers can follow later.
+  Future<void> saveBasics({
+    required String fullName,
+    required String phone,
+    required MemberRole role,
+    required String area,
+  }) async {
+    await db.from('profiles').update({
+      'full_name': fullName,
+      'phone': phone,
+      'role': role.name,
+      'area': area,
+      'accepted_terms_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', uid);
+  }
+
   // ---------------------------------------------------------------- slots
   Future<List<Slot>> feed({
     List<SlotKind>? kinds,
@@ -428,6 +444,8 @@ class Repo {
   Future<List<Profile>> members({VerificationStatus? status, String? query}) async {
     var q = db.from('profiles').select();
     if (status != null) q = q.eq('status', status.name);
+    // People who signed up but never filled in their details are left out
+    if (status == VerificationStatus.unverified) q = q.neq('full_name', '');
     final text = query?.trim() ?? '';
     if (text.isNotEmpty) {
       final safe = text.replaceAll(RegExp(r'[,()%]'), ' ');

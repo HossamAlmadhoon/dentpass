@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dentpass/data/models.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
 import 'package:dentpass/locale_controller.dart';
+import 'package:dentpass/screens/basic_details_screen.dart';
 import 'package:dentpass/screens/booking_review_sheet.dart';
 import 'package:dentpass/screens/edit_profile_screen.dart';
 import 'package:dentpass/screens/info_screens.dart';
@@ -15,6 +16,8 @@ import 'package:dentpass/screens/password_screens.dart';
 import 'package:dentpass/screens/post_slot_screen.dart';
 import 'package:dentpass/screens/review_sheet.dart';
 import 'package:dentpass/screens/sign_in_screen.dart';
+import 'package:dentpass/screens/verify_gate.dart';
+import 'package:dentpass/screens/verify_screen.dart';
 import 'package:dentpass/ui/feedback.dart';
 import 'package:dentpass/ui/widgets.dart';
 
@@ -51,6 +54,16 @@ VoidCallback _ignoreOverflow() {
   };
   return () => FlutterError.onError = original;
 }
+
+Profile _profile(String status, {String name = 'Dr. Sara Adel', String? phone = '01012345678'}) => Profile.fromMap({
+      'id': 'me',
+      'full_name': name,
+      'phone': phone,
+      'role': 'dentist',
+      'area': 'maadi',
+      'status': status,
+      'rejection_reason': status == 'rejected' ? 'The card photo is blurry' : null,
+    });
 
 Future<void> _phone(WidgetTester tester) async {
   tester.view.physicalSize = const Size(390 * 3, 844 * 3);
@@ -286,6 +299,75 @@ void main() {
       await tester.pumpWidget(_app(SetPasswordScreen(onDone: () {}), lang));
       await tester.pumpAndSettle();
       expect(find.byType(TextFormField), findsNWidgets(2));
+      restore();
+    });
+
+    testWidgets('basic details after sign-up, papers later ($lang)', (tester) async {
+      await _phone(tester);
+      final restore = _ignoreOverflow();
+      final t = lookupAppLocalizations(Locale(lang));
+      await tester.pumpWidget(_app(BasicDetailsScreen(profile: _profile('unverified', name: '', phone: null), onSaved: () {}), lang));
+      await tester.pumpAndSettle();
+      expect(find.text(t.basicsTitle), findsOneWidget);
+      expect(find.byType(TextFormField), findsNWidgets(2));
+      expect(find.text(t.syndicateCard), findsNothing, reason: 'papers are not asked for at sign-up');
+      await tester.tap(find.text(t.startUsing));
+      await tester.pumpAndSettle();
+      expect(find.text(t.required), findsWidgets, reason: 'name and mobile are needed');
+      restore();
+    });
+
+    testWidgets('post tab asks for papers when not verified ($lang)', (tester) async {
+      await _phone(tester);
+      final restore = _ignoreOverflow();
+      final t = lookupAppLocalizations(Locale(lang));
+      await tester.pumpWidget(_app(GetVerifiedScreen(profile: _profile('unverified'), onChanged: () {}), lang));
+      await tester.pumpAndSettle();
+      expect(find.text(t.postNeedsVerifyTitle), findsOneWidget);
+      await tester.tap(find.text(t.getVerified));
+      await tester.pumpAndSettle();
+      expect(find.byType(VerifyScreen), findsOneWidget);
+      expect(find.text(t.verifyTitle), findsOneWidget);
+      expect(find.text(t.syndicateNo), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.byType(VerifyScreen), findsNothing);
+      restore();
+    });
+
+    testWidgets('post tab while papers are checked, and after a rejection ($lang)', (tester) async {
+      await _phone(tester);
+      final restore = _ignoreOverflow();
+      final t = lookupAppLocalizations(Locale(lang));
+      await tester.pumpWidget(_app(GetVerifiedScreen(profile: _profile('pending'), onChanged: () {}), lang));
+      await tester.pumpAndSettle();
+      expect(find.text(t.papersCheckingTitle), findsOneWidget);
+      expect(find.text(t.getVerified), findsNothing);
+      await tester.pumpWidget(_app(GetVerifiedScreen(profile: _profile('rejected'), onChanged: () {}), lang));
+      await tester.pumpAndSettle();
+      expect(find.text(t.rejectedTitle), findsOneWidget);
+      expect(find.text(t.sendAgain), findsOneWidget);
+      restore();
+    });
+
+    testWidgets('home banner and the verified mark ($lang)', (tester) async {
+      await _phone(tester);
+      final restore = _ignoreOverflow();
+      final t = lookupAppLocalizations(Locale(lang));
+      await tester.pumpWidget(_app(
+        Scaffold(
+          body: Column(children: [
+            VerifyBanner(profile: _profile('unverified'), onChanged: () {}),
+            VerifyBanner(profile: _profile('approved'), onChanged: () {}),
+            const NameWithMark(name: 'Dr. Ahmed Mansour', verified: true),
+            const NameWithMark(name: 'Dr. Mona Fathy', verified: false),
+          ]),
+        ),
+        lang,
+      ));
+      await tester.pumpAndSettle();
+      expect(find.text(t.getVerifiedTitle), findsOneWidget, reason: 'only the unverified member sees the banner');
+      expect(find.byType(VerifiedMark), findsOneWidget);
       restore();
     });
   }

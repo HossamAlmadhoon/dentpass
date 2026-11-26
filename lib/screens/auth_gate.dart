@@ -7,14 +7,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dentpass/data/models.dart';
 import 'package:dentpass/data/repo.dart';
 import 'package:dentpass/platform/url_cleanup.dart';
+import 'package:dentpass/screens/basic_details_screen.dart';
 import 'package:dentpass/screens/home_shell.dart';
 import 'package:dentpass/screens/password_screens.dart';
 import 'package:dentpass/screens/pending_screen.dart';
 import 'package:dentpass/screens/sign_in_screen.dart';
-import 'package:dentpass/screens/verify_screen.dart';
 import 'package:dentpass/ui/widgets.dart';
 
-/// Signed out → sign in. Signed in → the screen that matches the member's verification status.
+/// Signed out → sign in. Signed in → basic details once, then the app.
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
@@ -92,13 +92,10 @@ class _ProfileGateState extends State<_ProfileGate> {
         }
         if (!snap.hasData) return const Scaffold(body: LoadingView());
         final p = snap.data!;
-        return switch (p.status) {
-          VerificationStatus.approved => HomeShell(profile: p, onProfileChanged: _reload),
-          VerificationStatus.pending => PendingScreen(onCheckAgain: _reload),
-          VerificationStatus.suspended => PendingScreen(onCheckAgain: _reload, suspended: true),
-          VerificationStatus.unverified || VerificationStatus.rejected =>
-            VerifyScreen(profile: p, onSubmitted: _reload),
-        };
+        // Papers are optional: everyone with a name and mobile gets in. Posting asks for papers.
+        if (p.status == VerificationStatus.suspended) return PendingScreen(onCheckAgain: _reload, suspended: true);
+        if (!p.hasBasics) return BasicDetailsScreen(profile: p, onSaved: _reload);
+        return HomeShell(profile: p, onProfileChanged: _reload);
       },
     );
   }

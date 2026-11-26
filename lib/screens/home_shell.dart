@@ -8,10 +8,11 @@ import 'package:dentpass/screens/info_screens.dart';
 import 'package:dentpass/screens/post_slot_screen.dart';
 import 'package:dentpass/screens/profile_screen.dart';
 import 'package:dentpass/screens/slot_detail_screen.dart';
+import 'package:dentpass/screens/verify_gate.dart';
 import 'package:dentpass/services/notifications.dart';
 import 'package:dentpass/ui/feedback.dart';
 
-/// The four tabs an approved member sees.
+/// The four tabs every member sees. Posting needs the verified mark.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key, required this.profile, required this.onProfileChanged});
   final Profile profile;
@@ -66,8 +67,10 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final body = switch (_tab) {
-      0 => ExploreScreen(profile: widget.profile, onPostSlot: () => _go(1)),
-      1 => PostSlotScreen(key: ValueKey(_postKey), onPosted: _posted),
+      0 => ExploreScreen(profile: widget.profile, onPostSlot: () => _go(1), onProfileChanged: widget.onProfileChanged),
+      1 => widget.profile.isVerified
+          ? PostSlotScreen(key: ValueKey(_postKey), onPosted: _posted)
+          : GetVerifiedScreen(profile: widget.profile, onChanged: widget.onProfileChanged),
       2 => BookingsScreen(profile: widget.profile),
       _ => ProfileScreen(profile: widget.profile, onChanged: widget.onProfileChanged),
     };
