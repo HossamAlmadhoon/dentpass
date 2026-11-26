@@ -4,6 +4,7 @@ import 'package:dentpass/data/areas.dart';
 import 'package:dentpass/data/models.dart';
 import 'package:dentpass/data/repo.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
+import 'package:dentpass/screens/info_screens.dart';
 import 'package:dentpass/screens/slot_detail_screen.dart';
 import 'package:dentpass/theme.dart';
 import 'package:dentpass/ui/format.dart';
@@ -38,7 +39,13 @@ class _MemberScreenState extends State<MemberScreen> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(actions: [
+        if (widget.userId != widget.viewer.id)
+          PopupMenuButton<String>(
+            onSelected: (_) => showReportSheet(context, memberId: widget.userId, title: t.reportMember),
+            itemBuilder: (_) => [PopupMenuItem(value: 'report', child: Text(t.reportMember))],
+          ),
+      ]),
       body: FutureBuilder<(Member?, List<Review>, List<Slot>)>(
         future: _data,
         builder: (context, snap) {

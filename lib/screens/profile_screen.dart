@@ -6,9 +6,12 @@ import 'package:dentpass/data/repo.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
 import 'package:dentpass/locale_controller.dart';
 import 'package:dentpass/screens/admin_screen.dart';
+import 'package:dentpass/screens/alerts_screen.dart';
 import 'package:dentpass/screens/edit_profile_screen.dart';
+import 'package:dentpass/screens/info_screens.dart';
 import 'package:dentpass/screens/member_screen.dart';
 import 'package:dentpass/screens/password_screens.dart';
+import 'package:dentpass/services/notifications.dart';
 import 'package:dentpass/theme.dart';
 import 'package:dentpass/ui/kinds.dart';
 import 'package:dentpass/ui/widgets.dart';
@@ -24,7 +27,62 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   late final Future<Member?> _me = repo.member(widget.profile.id);
+  final _push = PhoneNotifications.instance;
   bool _deleting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _push.addListener(_changed);
+  }
+
+  @override
+  void dispose() {
+    _push.removeListener(_changed);
+    super.dispose();
+  }
+
+  void _changed() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _setNotifications(bool on) async {
+    final t = AppLocalizations.of(context);
+    final lang = Localizations.localeOf(context).languageCode;
+    try {
+      if (on) {
+        await _push.enable(lang: lang);
+        if (mounted) showMessage(context, t.notificationsOn);
+      } else {
+        await _push.disable();
+      }
+    } on PushError catch (e) {
+      if (mounted) showMessage(context, e.reason == 'denied' ? t.notificationsBlocked : t.errGeneric);
+    } catch (e) {
+      if (mounted) showMessage(context, errorText(context, e));
+    }
+  }
+
+  Widget _notificationsTile(AppLocalizations t) {
+    final s = _push.status;
+    final note = switch (s) {
+      PushStatus.install => t.addToHomeFirst,
+      PushStatus.unsupported => t.notificationsUnsupported,
+      PushStatus.denied => t.notificationsBlocked,
+      _ => t.notificationsWhy,
+    };
+    final canToggle = (s == PushStatus.notAsked || s == PushStatus.granted) && (_push.ready || _push.enabled) && !_push.busy;
+    return Container(
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      child: SwitchListTile(
+        secondary: const Icon(Icons.notifications_active_outlined),
+        title: Text(t.phoneNotifications, style: const TextStyle(fontWeight: FontWeight.w700)),
+        subtitle: Text(note, style: const TextStyle(height: 1.4)),
+        value: _push.enabled,
+        onChanged: canToggle ? _setNotifications : null,
+      ),
+    );
+  }
 
   Future<void> _deleteAccount() async {
     final t = AppLocalizations.of(context);
@@ -103,6 +161,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: const Icon(Icons.badge_outlined),
             label: Text(t.viewMyPage),
           ),
+          const SizedBox(height: 20),
+          _notificationsTile(t),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () => open(const AlertsScreen()),
+            icon: const Icon(Icons.notification_add_outlined),
+            label: Text(t.myAlerts),
+          ),
           const SizedBox(height: 28),
           Text(t.language, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           const SizedBox(height: 10),
@@ -112,7 +178,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ButtonSegment(value: 'en', label: Text('English')),
             ],
             selected: {lang},
-            onSelectionChanged: (s) => localeController.setLanguage(s.first),
+            onSelectionChanged: (s) {
+              localeController.setLanguage(s.first);
+              repo.saveLanguage(s.first);
+            },
           ),
           if (p.isAdmin) ...[
             const SizedBox(height: 28),
@@ -136,6 +205,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: repo.signOut,
             icon: const Icon(Icons.logout),
             label: Text(t.signOut),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () => open(const HelpScreen()),
+            icon: const Icon(Icons.help_outline),
+            label: Text(t.help),
           ),
           const SizedBox(height: 28),
           TextButton.icon(

@@ -3,16 +3,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:dentpass/data/models.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
 import 'package:dentpass/locale_controller.dart';
 import 'package:dentpass/screens/booking_review_sheet.dart';
 import 'package:dentpass/screens/edit_profile_screen.dart';
+import 'package:dentpass/screens/info_screens.dart';
 import 'package:dentpass/screens/password_screens.dart';
 import 'package:dentpass/screens/post_slot_screen.dart';
 import 'package:dentpass/screens/review_sheet.dart';
 import 'package:dentpass/screens/sign_in_screen.dart';
+import 'package:dentpass/ui/feedback.dart';
 import 'package:dentpass/ui/widgets.dart';
 
 Widget _app(Widget home, String lang) => MaterialApp(
@@ -57,6 +60,7 @@ Future<void> _phone(WidgetTester tester) async {
 
 void main() {
   setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
     await initializeDateFormatting();
     localeController = LocaleController(const Locale('ar'));
   });
@@ -76,7 +80,7 @@ void main() {
     testWidgets('post a slot screen, every type ($lang)', (tester) async {
       await _phone(tester);
       final restore = _ignoreOverflow();
-      await tester.pumpWidget(_app(PostSlotScreen(onPosted: () {}), lang));
+      await tester.pumpWidget(_app(PostSlotScreen(onPosted: (_) {}), lang));
       await tester.pumpAndSettle();
       final t = lookupAppLocalizations(Locale(lang));
       for (final name in [t.kindCourse, t.kindRent, t.kindCover]) {
@@ -125,7 +129,7 @@ void main() {
         'area': 'maadi', 'address': '9 Road 233', 'starts_at': '2030-03-02T14:00:00Z', 'ends_at': '2030-03-02T20:00:00Z',
         'capacity': 1, 'price_egp': 900, 'need_role': 'dentist', 'lat': 29.96, 'lng': 31.25, 'exact_location': true,
       });
-      await tester.pumpWidget(_app(PostSlotScreen(existing: existing, onPosted: () {}), lang));
+      await tester.pumpWidget(_app(PostSlotScreen(existing: existing, onPosted: (_) {}), lang));
       await tester.pumpAndSettle();
       final t = lookupAppLocalizations(Locale(lang));
       expect(find.text(t.editSlot), findsOneWidget);
@@ -170,6 +174,107 @@ void main() {
       final send = find.widgetWithText(FilledButton, t.sendRating);
       expect(tester.widget<FilledButton>(send).onPressed, isNull);
       await tester.tap(find.byIcon(Icons.star_outline_rounded).at(3));
+      await tester.pumpAndSettle();
+      expect(tester.widget<FilledButton>(send).onPressed, isNotNull);
+      restore();
+    });
+
+    testWidgets('sign-up needs the terms agreed ($lang)', (tester) async {
+      await _phone(tester);
+      final restore = _ignoreOverflow();
+      await tester.pumpWidget(_app(const SignInScreen(), lang));
+      await tester.pumpAndSettle();
+      final t = lookupAppLocalizations(Locale(lang));
+      await tester.tap(find.text(t.noAccount));
+      await tester.pumpAndSettle();
+      expect(find.text(t.agreeTerms), findsOneWidget);
+      await tester.enterText(find.byType(TextFormField).at(0), 'test@example.com');
+      await tester.enterText(find.byType(TextFormField).at(1), 'password123');
+      await tester.tap(find.widgetWithText(FilledButton, t.signUp));
+      await tester.pumpAndSettle();
+      expect(find.text(t.mustAgree), findsOneWidget, reason: 'nothing is sent until the terms are agreed');
+      restore();
+    });
+
+    testWidgets('terms and privacy pages ($lang)', (tester) async {
+      await _phone(tester);
+      final restore = _ignoreOverflow();
+      final t = lookupAppLocalizations(Locale(lang));
+      for (final page in LegalPage.values) {
+        await tester.pumpWidget(_app(LegalScreen(page: page), lang));
+        await tester.pumpAndSettle();
+        expect(find.text(page == LegalPage.terms ? t.termsTitle : t.privacyTitle), findsOneWidget);
+      }
+      restore();
+    });
+
+    testWidgets('welcome tour goes through three pages ($lang)', (tester) async {
+      await _phone(tester);
+      final restore = _ignoreOverflow();
+      final t = lookupAppLocalizations(Locale(lang));
+      await tester.pumpWidget(_app(
+        Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WelcomeTour())),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+        lang,
+      ));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      expect(find.text(t.tour1Title), findsOneWidget);
+      await tester.tap(find.text(t.tourNext));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(t.tourNext));
+      await tester.pumpAndSettle();
+      expect(find.text(t.tour3Title), findsOneWidget);
+      await tester.tap(find.text(t.getStarted));
+      await tester.pumpAndSettle();
+      expect(find.text('open'), findsOneWidget, reason: 'the tour closes');
+      expect(await tourSeen(), isTrue);
+      restore();
+    });
+
+    testWidgets('done screen and loading outlines ($lang)', (tester) async {
+      await _phone(tester);
+      final restore = _ignoreOverflow();
+      final t = lookupAppLocalizations(Locale(lang));
+      await tester.pumpWidget(_app(
+        DoneScreen(title: t.requestSentTitle, body: t.requestSentBody('Dr. Ahmed'), primaryLabel: t.backToExplore, onPrimary: () {}),
+        lang,
+      ));
+      await tester.pumpAndSettle();
+      expect(find.text(t.requestSentTitle), findsOneWidget);
+      await tester.pumpWidget(_app(const Scaffold(body: SingleChildScrollView(child: SkeletonList())), lang));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(SkeletonList), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+      restore();
+    });
+
+    testWidgets('report sheet needs a reason ($lang)', (tester) async {
+      await _phone(tester);
+      final restore = _ignoreOverflow();
+      final t = lookupAppLocalizations(Locale(lang));
+      await tester.pumpWidget(_app(
+        Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showReportSheet(context, memberId: 'm1', title: t.reportMember),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+        lang,
+      ));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      final send = find.widgetWithText(FilledButton, t.sendReport);
+      expect(tester.widget<FilledButton>(send).onPressed, isNull);
+      await tester.tap(find.text(t.reasonNoShow));
       await tester.pumpAndSettle();
       expect(tester.widget<FilledButton>(send).onPressed, isNotNull);
       restore();

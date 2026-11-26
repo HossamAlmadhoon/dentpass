@@ -5,10 +5,12 @@ import 'package:dentpass/data/areas.dart';
 import 'package:dentpass/data/models.dart';
 import 'package:dentpass/data/repo.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
+import 'package:dentpass/screens/home_header.dart';
 import 'package:dentpass/screens/notifications_screen.dart';
 import 'package:dentpass/screens/slot_detail_screen.dart';
 import 'package:dentpass/services/location.dart';
 import 'package:dentpass/theme.dart';
+import 'package:dentpass/ui/feedback.dart';
 import 'package:dentpass/ui/format.dart';
 import 'package:dentpass/ui/maps.dart';
 import 'package:dentpass/ui/widgets.dart';
@@ -53,6 +55,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   LatLng? _me;
   late Future<List<Slot>> _slots;
   int _unread = 0;
+  int _refreshKey = 0;
 
   @override
   void initState() {
@@ -84,7 +87,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }).catchError((_) {});
   }
 
-  void _load() => setState(_fetch);
+  void _load() => setState(() {
+        _refreshKey++;
+        _fetch();
+      });
+
+  Future<void> _saveAlert() async {
+    final t = AppLocalizations.of(context);
+    try {
+      await repo.addAlert(kinds: _kindsFor(_filter), area: _area);
+      if (mounted) showMessage(context, t.alertSaved);
+    } catch (e) {
+      if (mounted) showMessage(context, errorText(context, e));
+    }
+  }
 
   Future<void> _chooseDay() async {
     final now = DateTime.now();
@@ -263,6 +279,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
         ]),
         actions: [
           IconButton(
+            tooltip: t.alertMe,
+            onPressed: _saveAlert,
+            icon: const Icon(Icons.notification_add_outlined),
+          ),
+          IconButton(
             tooltip: _showMap ? t.showList : t.showMap,
             onPressed: () => setState(() => _showMap = !_showMap),
             icon: Icon(_showMap ? Icons.view_list_outlined : Icons.map_outlined),
@@ -317,18 +338,19 @@ class _ExploreScreenState extends State<ExploreScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
               children: [
+                HomeHeader(profile: widget.profile, refreshKey: _refreshKey),
+                const SizedBox(height: 8),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text(t.exploreTitle,
-                      style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, height: 1.15)),
+                  child: Text(t.exploreTitle, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, height: 1.2)),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
                 _filters(t),
                 const SizedBox(height: 14),
                 if (snap.hasError)
                   ErrorView(error: snap.error!, onRetry: _load)
                 else if (!snap.hasData)
-                  const Padding(padding: EdgeInsets.all(48), child: LoadingView())
+                  const SkeletonList()
                 else if (slots.isEmpty)
                   EmptyView(text: t.emptyFeed, actionLabel: t.emptyFeedAction, onAction: widget.onPostSlot)
                 else

@@ -62,7 +62,7 @@ class _ManageSlotScreenState extends State<ManageSlotScreen> {
       MaterialPageRoute(
         builder: (ctx) => PostSlotScreen(
           existing: slot,
-          onPosted: () {
+          onPosted: (_) {
             Navigator.pop(ctx);
             showMessage(context, t.changesSaved);
           },
@@ -70,6 +70,21 @@ class _ManageSlotScreenState extends State<ManageSlotScreen> {
       ),
     );
     if (mounted) _reload();
+  }
+
+  Future<void> _duplicate(Slot slot) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (ctx) => PostSlotScreen(
+          template: slot,
+          onPosted: (id) => Navigator.pushReplacement(
+            ctx,
+            MaterialPageRoute(builder: (_) => ManageSlotScreen(slotId: id, profile: widget.profile)),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _delete(Slot slot) async {
@@ -100,6 +115,7 @@ class _ManageSlotScreenState extends State<ManageSlotScreen> {
             actions: [
               if (slot != null) ...[
                 IconButton(tooltip: t.editSlot, onPressed: () => _edit(slot), icon: const Icon(Icons.edit_outlined)),
+                IconButton(tooltip: t.duplicate, onPressed: () => _duplicate(slot), icon: const Icon(Icons.copy_all_outlined)),
                 IconButton(tooltip: t.deleteSlot, onPressed: () => _delete(slot), icon: const Icon(Icons.delete_outline)),
               ],
             ],

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:dentpass/data/areas.dart';
 import 'package:dentpass/data/models.dart';
 import 'package:dentpass/data/repo.dart';
+import 'package:dentpass/screens/info_screens.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
 import 'package:dentpass/theme.dart';
 import 'package:dentpass/ui/format.dart';
@@ -11,13 +12,17 @@ import 'package:dentpass/ui/widgets.dart';
 
 /// Admin area: new members to check, all members, all upcoming slots, and the numbers.
 class AdminScreen extends StatelessWidget {
-  const AdminScreen({super.key});
+  const AdminScreen({super.key, this.initialTab = 0});
+
+  /// 0 waiting, 1 members, 2 slots, 3 overview, 4 reports, 5 settings
+  final int initialTab;
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     return DefaultTabController(
-      length: 4,
+      length: 6,
+      initialIndex: initialTab,
       child: Scaffold(
         appBar: AppBar(
           title: Text(t.reviewMembers, style: const TextStyle(fontWeight: FontWeight.w800)),
@@ -29,10 +34,12 @@ class AdminScreen extends StatelessWidget {
               Tab(text: t.adminMembers),
               Tab(text: t.adminSlots),
               Tab(text: t.adminOverview),
+              Tab(text: t.adminReports),
+              Tab(text: t.adminSettings),
             ],
           ),
         ),
-        body: const TabBarView(children: [_Waiting(), _Members(), _Slots(), _Overview()]),
+        body: const TabBarView(children: [_Waiting(), _Members(), _Slots(), _Overview(), _Reports(), _Settings()]),
       ),
     );
   }
@@ -448,6 +455,177 @@ class _OverviewState extends State<_Overview> {
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+}
+
+// ------------------------------------------------------------------ reports
+class _Reports extends StatefulWidget {
+  const _Reports();
+
+  @override
+  State<_Reports> createState() => _ReportsState();
+}
+
+class _ReportsState extends State<_Reports> {
+  bool _open = true;
+  late Future<List<ReportItem>> _items = repo.adminReports(open: _open);
+
+  void _reload() => setState(() => _items = repo.adminReports(open: _open));
+
+  Future<void> _close(ReportItem r) async {
+    try {
+      await repo.closeReport(r.id);
+      _reload();
+    } catch (e) {
+      if (mounted) showMessage(context, errorText(context, e));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        child: Row(children: [
+          ChoiceChip(label: Text(t.openReports), selected: _open, onSelected: (_) {
+            _open = true;
+            _reload();
+          }),
+          const SizedBox(width: 8),
+          ChoiceChip(label: Text(t.closedReports), selected: !_open, onSelected: (_) {
+            _open = false;
+            _reload();
+          }),
+        ]),
+      ),
+      Expanded(
+        child: FutureBuilder<List<ReportItem>>(
+          future: _items,
+          builder: (context, snap) {
+            if (snap.hasError) return ErrorView(error: snap.error!, onRetry: _reload);
+            if (!snap.hasData) return const LoadingView();
+            final items = snap.data!;
+            if (items.isEmpty) return EmptyView(text: t.noReports);
+            return RefreshIndicator(
+              onRefresh: () async => _reload(),
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  for (final r in items)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          const Icon(Icons.flag_outlined, color: AppColors.danger, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(reasonLabel(t, r.reason), style: const TextStyle(fontWeight: FontWeight.w800)),
+                          ),
+                          Text(fullDate(context, r.createdAt), style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                        ]),
+                        const SizedBox(height: 6),
+                        if (r.memberName.isNotEmpty) Text(t.reportAbout(r.memberName)),
+                        if (r.slotTitle.isNotEmpty) Text(r.slotTitle, style: const TextStyle(color: AppColors.muted)),
+                        Text(t.reportFrom(r.reporterName), style: const TextStyle(color: AppColors.muted)),
+                        if (r.details.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(r.details, style: const TextStyle(height: 1.5)),
+                        ],
+                        if (r.status == 'open') ...[
+                          const SizedBox(height: 10),
+                          OutlinedButton(
+                            style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+                            onPressed: () => _close(r),
+                            child: Text(t.closeReport),
+                          ),
+                        ],
+                      ]),
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    ]);
+  }
+}
+
+// ------------------------------------------------------------------ settings
+class _Settings extends StatefulWidget {
+  const _Settings();
+
+  @override
+  State<_Settings> createState() => _SettingsState();
+}
+
+class _SettingsState extends State<_Settings> {
+  final _fee = TextEditingController();
+  final _whatsapp = TextEditingController();
+  late final Future<AppSettings> _loaded = repo.settings().then((s) {
+    _fee.text = '${s.feePercent}';
+    _whatsapp.text = s.supportWhatsapp ?? '';
+    return s;
+  });
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _fee.dispose();
+    _whatsapp.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final t = AppLocalizations.of(context);
+    final fee = int.tryParse(_fee.text.trim());
+    if (fee == null || fee < 0 || fee > 50) {
+      showMessage(context, t.required);
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await repo.saveSettings(feePercent: fee, supportWhatsapp: _whatsapp.text.trim());
+      if (mounted) showMessage(context, t.settingsSaved);
+    } catch (e) {
+      if (mounted) showMessage(context, errorText(context, e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return FutureBuilder<AppSettings>(
+      future: _loaded,
+      builder: (context, snap) {
+        if (snap.hasError) return ErrorView(error: snap.error!, onRetry: () => setState(() {}));
+        if (!snap.hasData) return const LoadingView();
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            TextField(
+              controller: _fee,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(labelText: t.feePercent),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _whatsapp,
+              keyboardType: TextInputType.phone,
+              textDirection: TextDirection.ltr,
+              decoration: InputDecoration(labelText: t.supportWhatsapp, hintText: '01xxxxxxxxx'),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(onPressed: _busy ? null : _save, child: Text(t.saveChanges)),
+          ],
         );
       },
     );

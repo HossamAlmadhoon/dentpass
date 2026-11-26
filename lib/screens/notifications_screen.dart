@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:dentpass/data/models.dart';
 import 'package:dentpass/data/repo.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
+import 'package:dentpass/screens/admin_screen.dart';
 import 'package:dentpass/screens/manage_slot_screen.dart';
 import 'package:dentpass/screens/member_screen.dart';
 import 'package:dentpass/screens/slot_detail_screen.dart';
@@ -39,19 +40,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         'review_received' => t.nReview(n.slotTitle),
         'account_suspended' => t.nSuspended,
         'account_reinstated' => t.nReinstated,
+        'reminder' => t.nReminder(n.slotTitle),
+        'host_reminder' => t.nHostReminder(n.slotTitle),
+        'new_slot' => t.nNewSlot(n.slotTitle),
+        'report_received' => t.nReport,
         _ => n.type,
       };
 
-  bool _canOpen(AppNotification n) => n.type == 'review_received' || n.slotId != null;
+  bool _canOpen(AppNotification n) =>
+      n.type == 'review_received' || (n.type == 'report_received' && widget.profile.isAdmin) || n.slotId != null;
 
   void _open(AppNotification n) {
     final slotId = n.slotId;
     final Widget screen;
     if (n.type == 'review_received') {
       screen = MemberScreen(userId: widget.profile.id, viewer: widget.profile);
+    } else if (n.type == 'report_received') {
+      screen = const AdminScreen(initialTab: 4);
     } else if (slotId == null) {
       return;
-    } else if (n.type == 'booking_requested' || n.type == 'booking_cancelled') {
+    } else if (n.type == 'booking_requested' || n.type == 'booking_cancelled' || n.type == 'host_reminder') {
       screen = ManageSlotScreen(slotId: slotId, profile: widget.profile);
     } else {
       screen = SlotDetailScreen(slotId: slotId, profile: widget.profile);

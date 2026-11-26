@@ -354,3 +354,159 @@ class AdminOverview {
 
   int count(String key) => _int(values[key]);
 }
+
+/// What the home screen shows: my next slot, requests waiting, what I host next.
+class HomeSummary {
+  HomeSummary({required this.next, required this.waiting, required this.hostingNext});
+
+  final NextSlot? next;
+  final int waiting;
+  final HostingNext? hostingNext;
+
+  factory HomeSummary.fromMap(Map<String, dynamic> m) => HomeSummary(
+        next: m['next'] is Map ? NextSlot.fromMap(Map<String, dynamic>.from(m['next'] as Map)) : null,
+        waiting: _int(m['waiting']),
+        hostingNext: m['hosting_next'] is Map
+            ? HostingNext.fromMap(Map<String, dynamic>.from(m['hosting_next'] as Map))
+            : null,
+      );
+}
+
+class NextSlot {
+  NextSlot({
+    required this.slotId,
+    required this.title,
+    required this.kind,
+    required this.startsAt,
+    required this.endsAt,
+    required this.area,
+    required this.address,
+    required this.lat,
+    required this.lng,
+    required this.hostName,
+    required this.hostPhone,
+  });
+
+  final String slotId;
+  final String title;
+  final SlotKind kind;
+  final DateTime startsAt;
+  final DateTime endsAt;
+  final String area;
+  final String address;
+  final double? lat;
+  final double? lng;
+  final String hostName;
+  final String? hostPhone;
+
+  factory NextSlot.fromMap(Map<String, dynamic> m) => NextSlot(
+        slotId: m['slot_id'] as String,
+        title: (m['title'] as String?) ?? '',
+        kind: _enum(SlotKind.values, m['kind'], SlotKind.observe),
+        startsAt: _date(m['starts_at']),
+        endsAt: _date(m['ends_at']),
+        area: (m['area'] as String?) ?? '',
+        address: (m['address'] as String?) ?? '',
+        lat: _double(m['lat']),
+        lng: _double(m['lng']),
+        hostName: (m['host_name'] as String?) ?? '',
+        hostPhone: m['host_phone'] as String?,
+      );
+}
+
+class HostingNext {
+  HostingNext({required this.slotId, required this.title, required this.startsAt, required this.accepted});
+
+  final String slotId;
+  final String title;
+  final DateTime startsAt;
+  final int accepted;
+
+  factory HostingNext.fromMap(Map<String, dynamic> m) => HostingNext(
+        slotId: m['slot_id'] as String,
+        title: (m['title'] as String?) ?? '',
+        startsAt: _date(m['starts_at']),
+        accepted: _int(m['accepted']),
+      );
+}
+
+enum ReportReason { noShow, unsafe, fake, payment, behaviour, other }
+
+String reportReasonKey(ReportReason r) => switch (r) {
+      ReportReason.noShow => 'no_show',
+      ReportReason.unsafe => 'unsafe',
+      ReportReason.fake => 'fake',
+      ReportReason.payment => 'payment',
+      ReportReason.behaviour => 'behaviour',
+      ReportReason.other => 'other',
+    };
+
+ReportReason reportReasonFrom(String? key) =>
+    ReportReason.values.firstWhere((r) => reportReasonKey(r) == key, orElse: () => ReportReason.other);
+
+class ReportItem {
+  ReportItem({
+    required this.id,
+    required this.reason,
+    required this.details,
+    required this.status,
+    required this.createdAt,
+    required this.reporterName,
+    required this.memberId,
+    required this.memberName,
+    required this.slotId,
+    required this.slotTitle,
+  });
+
+  final String id;
+  final ReportReason reason;
+  final String details;
+  final String status;
+  final DateTime createdAt;
+  final String reporterName;
+  final String? memberId;
+  final String memberName;
+  final String? slotId;
+  final String slotTitle;
+
+  factory ReportItem.fromMap(Map<String, dynamic> m) => ReportItem(
+        id: m['id'] as String,
+        reason: reportReasonFrom(m['reason'] as String?),
+        details: (m['details'] as String?) ?? '',
+        status: (m['status'] as String?) ?? 'open',
+        createdAt: _date(m['created_at']),
+        reporterName: (m['reporter_name'] as String?) ?? '',
+        memberId: m['member_id'] as String?,
+        memberName: (m['member_name'] as String?) ?? '',
+        slotId: m['slot_id'] as String?,
+        slotTitle: (m['slot_title'] as String?) ?? '',
+      );
+}
+
+class SlotAlert {
+  SlotAlert({required this.id, required this.kinds, required this.area});
+
+  final String id;
+  final List<SlotKind>? kinds; // null = all types
+  final String? area; // null = all areas
+
+  factory SlotAlert.fromMap(Map<String, dynamic> m) => SlotAlert(
+        id: m['id'] as String,
+        kinds: m['kinds'] is List
+            ? (m['kinds'] as List).map((k) => _enum(SlotKind.values, k, SlotKind.observe)).toList()
+            : null,
+        area: m['area'] as String?,
+      );
+}
+
+class AppSettings {
+  AppSettings({required this.feePercent, required this.supportWhatsapp});
+
+  final int feePercent;
+  final String? supportWhatsapp;
+
+  factory AppSettings.fromMap(Map<String, dynamic> m) => AppSettings(
+        feePercent: _int(m['fee_percent']),
+        supportWhatsapp: m['support_whatsapp'] as String?,
+      );
+}

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:dentpass/data/repo.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
+import 'package:dentpass/screens/info_screens.dart';
 import 'package:dentpass/screens/password_screens.dart';
 import 'package:dentpass/screens/profile_screen.dart';
 import 'package:dentpass/theme.dart';
@@ -19,6 +20,8 @@ class _SignInScreenState extends State<SignInScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _signUp = false;
+  bool _agreed = false;
+  bool _triedSignUp = false;
   bool _busy = false;
   String? _notice;
 
@@ -31,6 +34,10 @@ class _SignInScreenState extends State<SignInScreen> {
 
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
+    if (_signUp && !_agreed) {
+      setState(() => _triedSignUp = true);
+      return;
+    }
     setState(() {
       _busy = true;
       _notice = null;
@@ -96,6 +103,10 @@ class _SignInScreenState extends State<SignInScreen> {
                 validator: (v) => (v == null || v.length < 8) ? t.passwordTooShort : null,
                 onFieldSubmitted: (_) => _submit(),
               ),
+              if (_signUp) ...[
+                const SizedBox(height: 8),
+                TermsAgreement(value: _agreed, onChanged: (v) => setState(() => _agreed = v), showError: _triedSignUp),
+              ],
               if (!_signUp)
                 Align(
                   alignment: AlignmentDirectional.centerEnd,

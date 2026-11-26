@@ -5,10 +5,13 @@ import 'package:dentpass/data/models.dart';
 import 'package:dentpass/data/repo.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
 import 'package:dentpass/screens/booking_review_sheet.dart';
+import 'package:dentpass/screens/info_screens.dart';
 import 'package:dentpass/screens/manage_slot_screen.dart';
 import 'package:dentpass/screens/member_screen.dart';
 import 'package:dentpass/screens/review_sheet.dart';
+import 'package:dentpass/services/calendar.dart';
 import 'package:dentpass/theme.dart';
+import 'package:dentpass/ui/feedback.dart';
 import 'package:dentpass/ui/format.dart';
 import 'package:dentpass/ui/kinds.dart';
 import 'package:dentpass/ui/maps.dart';
@@ -63,9 +66,54 @@ class _SlotDetailScreenState extends State<SlotDetailScreen> {
       builder: (_) => BookingReviewSheet(slot: slot, feePercent: feePercent),
     );
     if (sent == true && mounted) {
-      showMessage(context, AppLocalizations.of(context).requestSent);
+      final t = AppLocalizations.of(context);
       _reload();
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (ctx) => DoneScreen(
+            title: slot.kind == SlotKind.cover ? t.statusPending : t.requestSentTitle,
+            body: t.requestSentBody(slot.hostName),
+            primaryLabel: t.backToExplore,
+            onPrimary: () => Navigator.of(ctx)..pop()..pop(),
+            secondaryLabel: t.viewSlot,
+            onSecondary: () => Navigator.pop(ctx),
+          ),
+        ),
+      );
     }
+  }
+
+  Future<void> _addToCalendar(Slot slot) async {
+    final t = AppLocalizations.of(context);
+    final location = [slot.address, areaName(context, slot.area)].where((s) => s.isNotEmpty).join(', ');
+    final details = '${kindName(t, slot.kind)} · ${slot.hostName}';
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const Icon(Icons.event_outlined),
+            title: Text(t.phoneCalendar),
+            onTap: () {
+              Navigator.pop(ctx);
+              openPhoneCalendar(buildIcs(
+                id: slot.id, title: slot.title, start: slot.startsAt, end: slot.endsAt, location: location, details: details,
+              ));
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.calendar_month_outlined),
+            title: Text(t.googleCalendar),
+            onTap: () {
+              Navigator.pop(ctx);
+              openGoogleCalendar(title: slot.title, start: slot.startsAt, end: slot.endsAt, location: location, details: details);
+            },
+          ),
+        ]),
+      ),
+    );
   }
 
   Future<void> _cancel(Booking b, SlotKind kind) async {
@@ -102,8 +150,21 @@ class _SlotDetailScreenState extends State<SlotDetailScreen> {
         final ks = kindStyle(slot.kind);
         final isHost = slot.hostId == widget.profile.id;
 
+        final going = isHost || booking?.status == BookingStatus.accepted;
         return Scaffold(
-          appBar: AppBar(),
+          appBar: AppBar(actions: [
+            if (going && !slot.hasEnded)
+              IconButton(
+                tooltip: t.addToCalendar,
+                onPressed: () => _addToCalendar(slot),
+                icon: const Icon(Icons.event_available_outlined),
+              ),
+            if (!isHost)
+              PopupMenuButton<String>(
+                onSelected: (_) => showReportSheet(context, slotId: slot.id, memberId: slot.hostId, title: t.reportSlot),
+                itemBuilder: (_) => [PopupMenuItem(value: 'report', child: Text(t.reportSlot))],
+              ),
+          ]),
           body: RefreshIndicator(
             onRefresh: () async => _reload(),
             child: ListView(

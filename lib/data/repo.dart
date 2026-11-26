@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:dentpass/data/models.dart';
+import 'package:dentpass/platform/push.dart';
 
 /// Every call to Supabase lives here, so screens stay simple.
 /// The database rules (supabase/migrations) decide who may read or change what.
@@ -22,7 +23,14 @@ class Repo {
   Future<AuthResponse> signIn(String email, String password) =>
       db.auth.signInWithPassword(email: email, password: password);
 
-  Future<void> signOut() => db.auth.signOut();
+  /// Signs out; this phone stops getting the member's notifications first.
+  Future<void> signOut() async {
+    try {
+      final device = await pushCurrent();
+      if (device != null) await removePushDevice(device.endpoint);
+    } catch (_) {}
+    await db.auth.signOut();
+  }
 
   /// Emails a link to set a new password. On the web it brings people back with ?reset=1.
   Future<void> sendPasswordReset(String email) => db.auth.resetPasswordForEmail(
@@ -109,7 +117,8 @@ class Repo {
     return rows.isEmpty ? null : Slot.fromMap(rows.first as Map<String, dynamic>);
   }
 
-  Future<void> createSlot({
+  /// Posts a slot and returns its id.
+  Future<String> createSlot({
     required SlotKind kind,
     required String title,
     required String description,
@@ -124,7 +133,7 @@ class Repo {
     required double? lat,
     required double? lng,
   }) async {
-    await db.from('slots').insert({
+    final row = await db.from('slots').insert({
       'host_id': uid,
       'kind': kind.name,
       'title': title,
@@ -140,7 +149,8 @@ class Repo {
       'photo_paths': photoPaths,
       'lat': lat,
       'lng': lng,
-    });
+    }).select('id').single();
+    return row['id'] as String;
   }
 
   /// Saves a host's edits. People with a request are told automatically when
@@ -297,6 +307,92 @@ class Repo {
     }
     await db.rpc('delete_my_account');
     await db.auth.signOut();
+  }
+
+  // ---------------------------------------------------------------- home, terms, settings
+  Future<HomeSummary> home() async {
+    final data = await db.rpc('my_home');
+    return HomeSummary.fromMap(Map<String, dynamic>.from(data as Map));
+  }
+
+  Future<void> acceptTerms() async {
+    await db.from('profiles').update({'accepted_terms_at': DateTime.now().toUtc().toIso8601String()}).eq('id', uid);
+  }
+
+  /// Remembers the language for phone notifications. Ignored when signed out.
+  Future<void> saveLanguage(String code) async {
+    if (db.auth.currentUser == null) return;
+    try {
+      await db.from('profiles').update({'lang': code == 'en' ? 'en' : 'ar'}).eq('id', uid);
+    } catch (_) {}
+  }
+
+  Future<AppSettings> settings() async {
+    final row = await db.from('app_settings').select('fee_percent, support_whatsapp').single();
+    return AppSettings.fromMap(row);
+  }
+
+  Future<void> saveSettings({required int feePercent, required String supportWhatsapp}) async {
+    await db.from('app_settings').update({
+      'fee_percent': feePercent,
+      'support_whatsapp': supportWhatsapp.isEmpty ? null : supportWhatsapp,
+    }).eq('id', true);
+  }
+
+  // ---------------------------------------------------------------- reports and alerts
+  Future<void> report({String? memberId, String? slotId, required ReportReason reason, required String details}) async {
+    await db.from('reports').insert({
+      'reporter_id': uid,
+      'member_id': memberId,
+      'slot_id': slotId,
+      'reason': reportReasonKey(reason),
+      'details': details,
+    });
+  }
+
+  Future<List<ReportItem>> adminReports({required bool open}) async {
+    final rows = await db.rpc('admin_reports', params: {'p_status': open ? 'open' : 'closed'}) as List;
+    return rows.map((r) => ReportItem.fromMap(r as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> closeReport(String id) async {
+    await db.from('reports').update({'status': 'closed', 'closed_at': DateTime.now().toUtc().toIso8601String()}).eq('id', id);
+  }
+
+  Future<List<SlotAlert>> alerts() async {
+    final rows = await db.from('slot_alerts').select().eq('user_id', uid).order('created_at');
+    return rows.map(SlotAlert.fromMap).toList();
+  }
+
+  /// Saves an alert; saving the same one twice is fine.
+  Future<void> addAlert({List<SlotKind>? kinds, String? area}) async {
+    try {
+      await db.from('slot_alerts').insert({
+        'user_id': uid,
+        'kinds': kinds?.map((k) => k.name).toList(),
+        'area': area,
+      });
+    } on PostgrestException catch (e) {
+      if (e.code != '23505') rethrow; // already saved
+    }
+  }
+
+  Future<void> removeAlert(String id) async {
+    await db.from('slot_alerts').delete().eq('id', id);
+  }
+
+  // ---------------------------------------------------------------- phone notifications
+  Future<void> savePushDevice({required String endpoint, required String p256dh, required String auth, required String lang}) async {
+    await db.rpc('save_push_subscription', params: {
+      'p_endpoint': endpoint,
+      'p_p256dh': p256dh,
+      'p_auth': auth,
+      'p_lang': lang,
+    });
+  }
+
+  Future<void> removePushDevice(String endpoint) async {
+    await db.rpc('remove_push_subscription', params: {'p_endpoint': endpoint});
   }
 
   // ---------------------------------------------------------------- notifications

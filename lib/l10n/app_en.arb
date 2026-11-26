@@ -392,5 +392,164 @@
     }
   },
   "nSuspended": "Your account was suspended.",
-  "nReinstated": "Your account is active again."
+  "nReinstated": "Your account is active again.",
+  "hello": "Hello, {name}",
+  "@hello": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "yourNextSlot": "Your next slot",
+  "today": "Today",
+  "tomorrow": "Tomorrow",
+  "inHours": "In {hours} h",
+  "@inHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "happeningNow": "Happening now",
+  "directions": "Directions",
+  "requestsWaiting": "Requests waiting for your answer: {count}",
+  "@requestsWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "youHostNext": "You're hosting next",
+  "acceptedCount": "Accepted: {count}",
+  "@acceptedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "allSlots": "All slots",
+  "turnOnNotifications": "Turn on phone notifications",
+  "notificationsWhy": "Hear about requests and answers straight away.",
+  "turnOn": "Turn on",
+  "notNow": "Not now",
+  "addToHomeFirst": "On iPhone, first add DentPass to your home screen: tap Share, then Add to Home Screen. Open it from there, then turn on notifications.",
+  "notificationsOn": "Phone notifications are on.",
+  "notificationsBlocked": "Notifications are blocked. Allow them in your phone's settings for DentPass.",
+  "notificationsUnsupported": "This browser can't show notifications.",
+  "phoneNotifications": "Phone notifications",
+  "requestSentTitle": "Request sent",
+  "requestSentBody": "{host} will answer in the app. We'll tell you as soon as they do.",
+  "@requestSentBody": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "postedTitle": "Your slot is live",
+  "postedBody": "Checked dentists can see it and send requests.",
+  "backToExplore": "Back to Explore",
+  "tour1Title": "Learn from real cases",
+  "tour1Body": "Book a seat to watch an expert's case, or join a hands-on course.",
+  "tour2Title": "Rent a chair when you need one",
+  "tour2Body": "Use an equipped unit by the day or the hour, without opening your own clinic.",
+  "tour3Title": "Cover shifts, or find cover",
+  "tour3Body": "Clinics post shifts. Checked dentists and assistants offer to cover them.",
+  "tourNext": "Next",
+  "getStarted": "Get started",
+  "skip": "Skip",
+  "help": "Help and contact",
+  "contactWhatsapp": "Message DentPass on WhatsApp",
+  "faq1q": "How do I pay?",
+  "faq1a": "After the host accepts, pay them directly by InstaPay. The DentPass fee is shown before you send a request.",
+  "faq2q": "Why do I send my syndicate card?",
+  "faq2a": "So every member is a real, licensed dentist or assistant. Only DentPass admins can see your documents.",
+  "faq3q": "When do others see my address and phone?",
+  "faq3a": "Only after you accept their request, or they accept yours.",
+  "faq4q": "Can I change or cancel a slot?",
+  "faq4a": "Yes. Open the slot, then Manage requests. Everyone with a request is told about changes.",
+  "faq5q": "How do ratings work?",
+  "faq5a": "After a slot ends, both sides can rate each other from 1 to 5 stars.",
+  "termsTitle": "Terms of use",
+  "privacyTitle": "Privacy policy",
+  "agreeTerms": "I agree to the Terms of use and the Privacy policy",
+  "mustAgree": "Please agree to the terms to continue.",
+  "report": "Report",
+  "reportMember": "Report this member",
+  "reportSlot": "Report this slot",
+  "reportWhy": "What happened?",
+  "reasonNoShow": "Didn't show up",
+  "reasonUnsafe": "Unsafe or unprofessional practice",
+  "reasonFake": "Fake or misleading",
+  "reasonPayment": "Payment problem",
+  "reasonBehaviour": "Rude or inappropriate",
+  "reasonOther": "Something else",
+  "reportDetails": "Details (optional)",
+  "sendReport": "Send report",
+  "reportSent": "Thanks. The DentPass team will review it.",
+  "duplicate": "Duplicate",
+  "postCopy": "Post a copy",
+  "alertMe": "Alert me about new slots like these",
+  "alertSaved": "Alert saved. We'll tell you when a matching slot is posted.",
+  "myAlerts": "My alerts",
+  "noAlerts": "No alerts yet. In Explore, choose a type and area, then tap the bell with a plus.",
+  "alertAll": "All types",
+  "addToCalendar": "Add to calendar",
+  "adminReports": "Reports",
+  "adminSettings": "Settings",
+  "noReports": "No reports.",
+  "closeReport": "Mark as handled",
+  "reportFrom": "From {name}",
+  "@reportFrom": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportAbout": "About {name}",
+  "@reportAbout": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "openReports": "Open",
+  "closedReports": "Handled",
+  "feePercent": "DentPass fee (%)",
+  "supportWhatsapp": "Support WhatsApp number",
+  "settingsSaved": "Settings saved.",
+  "nReminder": "Reminder: \"{title}\" is coming up soon",
+  "@nReminder": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "nHostReminder": "Reminder: you're hosting \"{title}\" soon",
+  "@nHostReminder": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "nNewSlot": "New slot you may like: \"{title}\"",
+  "@nNewSlot": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "nReport": "A new report is waiting for review",
+  "viewSlot": "View your slot",
+  "phoneCalendar": "Phone calendar",
+  "googleCalendar": "Google Calendar"
 }

@@ -25,9 +25,16 @@ class _Photo {
 
 /// Post a new slot, or edit one ([existing]) after posting.
 class PostSlotScreen extends StatefulWidget {
-  const PostSlotScreen({super.key, required this.onPosted, this.existing});
-  final VoidCallback onPosted;
+  const PostSlotScreen({super.key, required this.onPosted, this.existing, this.template});
+
+  /// Called with the slot's id after posting or saving.
+  final ValueChanged<String> onPosted;
+
+  /// Edit this slot.
   final Slot? existing;
+
+  /// Start a new slot from a copy of this one (date and photos are left for the host to set).
+  final Slot? template;
 
   @override
   State<PostSlotScreen> createState() => _PostSlotScreenState();
@@ -35,24 +42,26 @@ class PostSlotScreen extends StatefulWidget {
 
 class _PostSlotScreenState extends State<PostSlotScreen> {
   final _form = GlobalKey<FormState>();
-  late final Slot? _old = widget.existing;
+  late final Slot? _old = widget.existing ?? widget.template;
   late final _title = TextEditingController(text: _old?.title ?? '');
   late final _details = TextEditingController(text: _old?.description ?? '');
   late final _address = TextEditingController(text: _old?.address ?? '');
   late final _price = TextEditingController(text: _old == null ? '' : '${_old.priceEgp}');
   late SlotKind _kind = _old?.kind ?? SlotKind.observe;
   late String? _area = _old?.area;
-  late DateTime? _date = _old?.startsAt;
+  late DateTime? _date = widget.template != null ? null : _old?.startsAt;
   late TimeOfDay _from = _old == null ? const TimeOfDay(hour: 10, minute: 0) : TimeOfDay.fromDateTime(_old.startsAt);
   late TimeOfDay _to = _old == null ? const TimeOfDay(hour: 14, minute: 0) : TimeOfDay.fromDateTime(_old.endsAt);
   late int _capacity = _old?.capacity ?? 3;
   late MemberRole _needRole = _old?.needRole ?? MemberRole.dentist;
-  late final List<_Photo> _photos = [for (final p in _old?.photoPaths ?? const <String>[]) _Photo.saved(p)];
+  late final List<_Photo> _photos = [
+    if (widget.existing != null) for (final p in widget.existing!.photoPaths) _Photo.saved(p),
+  ];
   late LatLng? _location = (_old != null && _old.hasLocation) ? LatLng(_old.lat!, _old.lng!) : null;
   bool _busy = false;
   String? _error;
 
-  bool get _editing => _old != null;
+  bool get _editing => widget.existing != null;
 
   @override
   void dispose() {
@@ -140,6 +149,7 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
         }
       }
       if (_editing) {
+        final id = _old!.id;
         await repo.updateSlot(
           _old!.id,
           title: _title.text.trim(),
@@ -156,8 +166,9 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
           lng: _location?.longitude,
         );
         await repo.removeSlotPhotos(_old.photoPaths.where((p) => !paths.contains(p)).toList());
+        widget.onPosted(id);
       } else {
-        await repo.createSlot(
+        final id = await repo.createSlot(
           kind: _kind,
           title: _title.text.trim(),
           description: _details.text.trim(),
@@ -172,8 +183,8 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
           lat: _location?.latitude,
           lng: _location?.longitude,
         );
+        widget.onPosted(id);
       }
-      widget.onPosted();
     } catch (e) {
       if (mounted) setState(() => _error = errorText(context, e));
     } finally {
@@ -197,14 +208,15 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_editing ? t.editSlot : t.postTitle, style: const TextStyle(fontWeight: FontWeight.w800)),
+        title: Text(_editing ? t.editSlot : widget.template != null ? t.postCopy : t.postTitle,
+            style: const TextStyle(fontWeight: FontWeight.w800)),
       ),
       body: Form(
         key: _form,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
           children: [
-            if (!_editing) ...[
+            if (!_editing && widget.template == null) ...[
               Text(t.postIntro, style: const TextStyle(fontSize: 15, color: AppColors.muted)),
               const SizedBox(height: 20),
               SectionTitle(t.whatPosting),
