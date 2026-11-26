@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -18,6 +19,9 @@ Future<void> main() async {
   await Supabase.initialize(
     url: AppConfig.supabaseUrl,
     publishableKey: AppConfig.supabaseAnonKey,
+    // On the web, email links (reset password, confirm email) may open in Safari while the app
+    // was added to the home screen, which keeps separate storage. The implicit flow works across both.
+    authOptions: FlutterAuthClientOptions(authFlowType: kIsWeb ? AuthFlowType.implicit : AuthFlowType.pkce),
   );
   localeController = await LocaleController.load();
 

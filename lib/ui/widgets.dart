@@ -11,12 +11,14 @@ import 'package:dentpass/ui/format.dart';
 import 'package:dentpass/ui/kinds.dart';
 
 /// Turns a server error into a sentence the user can act on.
+/// Unknown errors keep the technical detail on a second line, so testers can report it.
 String errorText(BuildContext context, Object e) {
   final t = AppLocalizations.of(context);
   final String raw = switch (e) {
     PostgrestException(:final message) => message,
     AuthException(:final message) => message,
-    _ => '',
+    StorageException(:final message) => message,
+    _ => e.toString(),
   };
   final msg = raw.toLowerCase();
   if (msg.contains('slot full')) return t.errSlotFull;
@@ -24,7 +26,16 @@ String errorText(BuildContext context, Object e) {
   if (msg.contains('slot closed')) return t.errSlotClosed;
   if (msg.contains('role mismatch')) return t.errRoleMismatch;
   if (msg.contains('invalid login')) return t.wrongLogin;
-  return t.errGeneric;
+  if (msg.contains('already registered') || msg.contains('already been registered')) return t.errEmailTaken;
+  if (msg.contains('email not confirmed')) return t.errEmailNotConfirmed;
+  if (msg.contains('rate limit') || msg.contains('too many')) return t.errEmailLimit;
+  if (msg.contains('sending') && msg.contains('email')) return t.errEmailSend;
+  if (msg.contains('should be different')) return t.errSamePassword;
+  if (e is StorageException) return '${t.errUpload}\n($raw)';
+  if (e is AuthRetryableFetchException || msg.contains('failed to fetch') || msg.contains('socket')) {
+    return t.errGeneric;
+  }
+  return raw.isEmpty ? t.errGeneric : '${t.errGeneric}\n($raw)';
 }
 
 void showMessage(BuildContext context, String text) {

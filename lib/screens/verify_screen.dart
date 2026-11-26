@@ -59,9 +59,9 @@ class _VerifyScreenState extends State<VerifyScreen> {
       var cardPath = widget.profile.cardPath;
       var idPath = widget.profile.idPath;
       if (_role == MemberRole.dentist && _card != null) {
-        cardPath = await repo.uploadImage('verification', 'syndicate_card.jpg', _card!);
+        cardPath = await repo.uploadImage('verification', 'syndicate_card.jpg', _card!, replace: true);
       }
-      if (_id != null) idPath = await repo.uploadImage('verification', 'national_id.jpg', _id!);
+      if (_id != null) idPath = await repo.uploadImage('verification', 'national_id.jpg', _id!, replace: true);
       await repo.submitVerification(
         fullName: _name.text.trim(),
         phone: _phone.text.trim(),

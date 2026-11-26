@@ -313,7 +313,12 @@ class _TimeButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: onTap,
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.muted)),
+        Flexible(
+          child: Text(label,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.muted)),
+        ),
+        const SizedBox(width: 8),
         Text(value.format(context)),
       ]),
     );

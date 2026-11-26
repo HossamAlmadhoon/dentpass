@@ -242,5 +242,11 @@
   "passwordsDontMatch": "The passwords don't match.",
   "savePassword": "Save password",
   "passwordSaved": "Password saved.",
-  "changePassword": "Change password"
+  "changePassword": "Change password",
+  "errEmailTaken": "An account with this email already exists. Sign in instead.",
+  "errEmailNotConfirmed": "Confirm your email first, using the link we sent you.",
+  "errEmailLimit": "Too many emails were sent just now. Wait an hour and try again.",
+  "errEmailSend": "We couldn't send the email. Try again later.",
+  "errSamePassword": "Choose a password different from your current one.",
+  "errUpload": "The photo couldn't be uploaded. Try another photo or try again."
 }

@@ -41,15 +41,26 @@ class Repo {
   }
 
   /// Uploads an image to `bucket/user-id/name` and returns its path.
-  Future<String> uploadImage(String bucket, String name, XFile file) async {
+  /// [replace] overwrites a file with the same name (used for documents people re-send).
+  Future<String> uploadImage(String bucket, String name, XFile file, {bool replace = false}) async {
     final bytes = await file.readAsBytes();
     final path = '$uid/$name';
     await db.storage.from(bucket).uploadBinary(
           path,
           bytes,
-          fileOptions: FileOptions(upsert: true, contentType: file.mimeType ?? 'image/jpeg'),
+          fileOptions: FileOptions(upsert: replace, contentType: _imageType(file)),
         );
     return path;
+  }
+
+  static String _imageType(XFile file) {
+    final type = file.mimeType;
+    if (type != null && type.startsWith('image/')) return type;
+    final name = file.name.toLowerCase();
+    if (name.endsWith('.png')) return 'image/png';
+    if (name.endsWith('.webp')) return 'image/webp';
+    if (name.endsWith('.heic') || name.endsWith('.heif')) return 'image/heic';
+    return 'image/jpeg';
   }
 
   Future<void> submitVerification({
