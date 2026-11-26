@@ -71,7 +71,8 @@ ThemeData buildTheme({String? fontFamily}) {
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(54),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+        // Built from the text theme so button labels keep the app's typeface
+        textStyle: text.labelLarge!.copyWith(fontSize: 17, fontWeight: FontWeight.w700),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -80,7 +81,7 @@ ThemeData buildTheme({String? fontFamily}) {
         foregroundColor: AppColors.ink,
         side: const BorderSide(color: AppColors.field, width: 1.5),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        textStyle: text.labelLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w700),
       ),
     ),
     navigationBarTheme: const NavigationBarThemeData(

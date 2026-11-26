@@ -211,7 +211,7 @@ class _CardAction extends StatelessWidget {
             foregroundColor: Colors.white,
             side: const BorderSide(color: Color(0xFF56616B)),
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            textStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+            textStyle: Theme.of(context).textTheme.labelLarge!.copyWith(fontSize: 13.5, fontWeight: FontWeight.w700),
           ),
           onPressed: onTap,
           icon: Icon(icon, size: 18),
