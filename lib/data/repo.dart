@@ -30,7 +30,7 @@ class Repo {
     return Profile.fromMap(row);
   }
 
-  /// Uploads an image to "<bucket>/<user id>/<name>" and returns its path.
+  /// Uploads an image to `bucket/user-id/name` and returns its path.
   Future<String> uploadImage(String bucket, String name, XFile file) async {
     final bytes = await file.readAsBytes();
     final path = '$uid/$name';

@@ -17,7 +17,7 @@ Future<void> main() async {
   await initializeDateFormatting();
   await Supabase.initialize(
     url: AppConfig.supabaseUrl,
-    anonKey: AppConfig.supabaseAnonKey,
+    publishableKey: AppConfig.supabaseAnonKey,
   );
   localeController = await LocaleController.load();
 
