@@ -24,6 +24,16 @@ class Repo {
 
   Future<void> signOut() => db.auth.signOut();
 
+  /// Emails a link to set a new password. On the web it brings people back with ?reset=1.
+  Future<void> sendPasswordReset(String email) => db.auth.resetPasswordForEmail(
+        email,
+        redirectTo: kIsWeb ? '${Uri.base.origin}${Uri.base.path}?reset=1' : null,
+      );
+
+  Future<void> setPassword(String password) async {
+    await db.auth.updateUser(UserAttributes(password: password));
+  }
+
   // ---------------------------------------------------------------- profile
   Future<Profile> myProfile() async {
     final row = await db.from('profiles').select().eq('id', uid).single();

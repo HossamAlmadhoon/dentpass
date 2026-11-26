@@ -230,5 +230,17 @@
   "cancel": "Cancel",
   "retry": "Try again",
   "camera": "Camera",
-  "gallery": "Gallery"
+  "gallery": "Gallery",
+  "forgotPassword": "Forgot password?",
+  "resetTitle": "Reset your password",
+  "resetIntro": "Enter your email and we'll send you a link to set a new password.",
+  "sendLink": "Send link",
+  "resetSent": "If this email has an account, you'll get a link to set a new password.",
+  "newPasswordTitle": "Set a new password",
+  "newPassword": "New password",
+  "confirmPassword": "Confirm new password",
+  "passwordsDontMatch": "The passwords don't match.",
+  "savePassword": "Save password",
+  "passwordSaved": "Password saved.",
+  "changePassword": "Change password"
 }

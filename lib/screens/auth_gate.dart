@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:dentpass/data/models.dart';
 import 'package:dentpass/data/repo.dart';
 import 'package:dentpass/screens/home_shell.dart';
+import 'package:dentpass/screens/password_screens.dart';
 import 'package:dentpass/screens/pending_screen.dart';
 import 'package:dentpass/screens/sign_in_screen.dart';
 import 'package:dentpass/screens/verify_screen.dart';
@@ -22,12 +24,18 @@ class AuthGate extends StatefulWidget {
 class _AuthGateState extends State<AuthGate> {
   late final StreamSubscription<AuthState> _sub;
   Session? _session = repo.db.auth.currentSession;
+  // True after opening a password reset link (?reset=1 on the web, or the recovery event).
+  bool _recovering = kIsWeb && Uri.base.queryParameters['reset'] == '1';
 
   @override
   void initState() {
     super.initState();
     _sub = repo.db.auth.onAuthStateChange.listen((state) {
-      if (mounted) setState(() => _session = state.session);
+      if (!mounted) return;
+      setState(() {
+        _session = state.session;
+        if (state.event == AuthChangeEvent.passwordRecovery) _recovering = true;
+      });
     });
   }
 
@@ -41,6 +49,7 @@ class _AuthGateState extends State<AuthGate> {
   Widget build(BuildContext context) {
     final session = _session;
     if (session == null) return const SignInScreen();
+    if (_recovering) return SetPasswordScreen(onDone: () => setState(() => _recovering = false));
     return _ProfileGate(key: ValueKey(session.user.id));
   }
 }

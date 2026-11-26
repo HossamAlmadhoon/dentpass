@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:dentpass/data/repo.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
+import 'package:dentpass/screens/password_screens.dart';
 import 'package:dentpass/screens/profile_screen.dart';
 import 'package:dentpass/theme.dart';
 import 'package:dentpass/ui/widgets.dart';
@@ -95,6 +96,17 @@ class _SignInScreenState extends State<SignInScreen> {
                 validator: (v) => (v == null || v.length < 8) ? t.passwordTooShort : null,
                 onFieldSubmitted: (_) => _submit(),
               ),
+              if (!_signUp)
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: TextButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => ForgotPasswordScreen(initialEmail: _email.text.trim())),
+                    ),
+                    child: Text(t.forgotPassword),
+                  ),
+                ),
               if (_notice != null) ...[
                 const SizedBox(height: 14),
                 Text(_notice!, style: const TextStyle(fontSize: 14, color: AppColors.body, height: 1.4)),

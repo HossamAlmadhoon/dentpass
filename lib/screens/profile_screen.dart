@@ -6,6 +6,7 @@ import 'package:dentpass/data/repo.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
 import 'package:dentpass/locale_controller.dart';
 import 'package:dentpass/screens/admin_screen.dart';
+import 'package:dentpass/screens/password_screens.dart';
 import 'package:dentpass/theme.dart';
 import 'package:dentpass/ui/format.dart';
 import 'package:dentpass/ui/kinds.dart';
@@ -68,6 +69,15 @@ class ProfileScreen extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 28),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (ctx) => SetPasswordScreen(onDone: () => Navigator.pop(ctx))),
+            ),
+            icon: const Icon(Icons.lock_outline),
+            label: Text(t.changePassword),
+          ),
+          const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: repo.signOut,
             icon: const Icon(Icons.logout),
