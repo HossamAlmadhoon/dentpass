@@ -230,7 +230,9 @@ final _shot = GlobalKey();
 
 Widget _app(Widget home, String lang) => RepaintBoundary(
       key: _shot,
+      // A new key each time, so nothing from the previous picture (an open sheet) stays on screen
       child: MaterialApp(
+        key: UniqueKey(),
         debugShowCheckedModeBanner: false,
         theme: buildTheme(fontFamily: 'Plex'),
         locale: Locale(lang),
