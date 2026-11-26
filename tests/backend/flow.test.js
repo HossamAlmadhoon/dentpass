@@ -106,10 +106,12 @@ test('DentPass: sign-up to booking, with every permission check', async () => {
   await fails(stranger.c.from('slots').insert(slot({ host_id: stranger.id, kind: 'rent', title: 'Chair' })), 'row-level security|policy', 'unapproved member cannot post');
 
   // ---- Explore, with the app's filters
-  const learn = ok(await guest.c.rpc('get_feed', { p_kind: ['observe', 'course'], p_area: 'maadi' }), 'feed: Learn in Maadi');
+  // Other test files add slots at the same time, so look only at this host's slots
+  const own = (rows) => rows.filter((s) => s.host_id === host.id);
+  const learn = own(ok(await guest.c.rpc('get_feed', { p_kind: ['observe', 'course'], p_area: 'maadi' }), 'feed: Learn in Maadi'));
   assert.equal(learn.length, 1);
   assert.equal(learn[0].host_name, 'Dr host');
-  const everything = ok(await guest.c.rpc('get_feed', { p_kind: null, p_area: null }), 'feed: all');
+  const everything = own(ok(await guest.c.rpc('get_feed', { p_kind: null, p_area: null }), 'feed: all'));
   assert.equal(everything.length, 2);
   const caseId = learn[0].id;
   const coverId = everything.find((s) => s.kind === 'cover').id;
@@ -163,7 +165,7 @@ test('DentPass: sign-up to booking, with every permission check', async () => {
   const hostNotes = ok(await host.c.from('notifications').select('type').eq('user_id', host.id), 'host notifications').map((n) => n.type);
   assert.ok(hostNotes.includes('booking_requested') && hostNotes.includes('booking_cancelled'), `host notifications: ${hostNotes}`);
   ok(await host.c.from('slots').update({ is_open: false }).eq('id', caseId), 'host closes the slot');
-  const open = ok(await guest.c.rpc('get_feed', { p_kind: null, p_area: null }), 'feed after closing');
+  const open = own(ok(await guest.c.rpc('get_feed', { p_kind: null, p_area: null }), 'feed after closing'));
   assert.equal(open.length, 1, 'closed slots leave the feed');
 
   // ---- Passwords
