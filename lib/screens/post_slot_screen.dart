@@ -151,7 +151,7 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
       if (_editing) {
         final id = _old!.id;
         await repo.updateSlot(
-          _old!.id,
+          _old.id,
           title: _title.text.trim(),
           description: _details.text.trim(),
           area: _area!,
