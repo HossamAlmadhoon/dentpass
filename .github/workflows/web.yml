@@ -74,7 +74,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 3.4.0
 
       - name: Start a local Supabase with the app's database
         run: |
@@ -111,7 +111,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 3.4.0
 
       - name: Check the Supabase secrets are set
         run: |
@@ -121,28 +121,28 @@ jobs:
           fi
 
       - name: Link the live project
-        run: supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+        run: supabase link --project-ref "$PROJECT_REF"
 
       - name: Record the updates that were run by hand (version 1 and 2)
-        run: supabase migration repair --status applied 0001 0002 --password "$SUPABASE_DB_PASSWORD"
+        run: supabase migration repair --status applied 0001 0002 --remote --password "$SUPABASE_DB_PASSWORD" --yes
 
       - name: Apply new database updates
-        run: yes | supabase db push --include-all --password "$SUPABASE_DB_PASSWORD"
+        run: supabase db push --include-all --remote --password "$SUPABASE_DB_PASSWORD" --yes
 
       - name: Create the phone notification keys (first time only)
         run: |
-          if supabase secrets list --project-ref "$PROJECT_REF" | grep -q VAPID_PRIVATE_KEY; then
+          if supabase secrets list --remote="$PROJECT_REF" | grep -q VAPID_PRIVATE_KEY; then
             echo "Keys already set"
           else
             keys=$(npx --yes web-push@3.6.7 generate-vapid-keys --json)
             pub=$(node -e 'console.log(JSON.parse(process.argv[1]).publicKey)' "$keys")
             priv=$(node -e 'console.log(JSON.parse(process.argv[1]).privateKey)' "$keys")
             echo "::add-mask::$priv"
-            supabase secrets set --project-ref "$PROJECT_REF" VAPID_PUBLIC_KEY="$pub" VAPID_PRIVATE_KEY="$priv"
+            supabase secrets set --remote="$PROJECT_REF" --yes VAPID_PUBLIC_KEY="$pub" VAPID_PRIVATE_KEY="$priv"
           fi
 
       - name: Install the notification sender
-        run: supabase functions deploy send-push --project-ref "$PROJECT_REF" --no-verify-jwt
+        run: supabase functions deploy send-push --remote="$PROJECT_REF" --no-verify-jwt --use-api --yes
 
   deploy:
     needs: [build, backend, supabase]
