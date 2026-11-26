@@ -490,4 +490,5 @@ class Repo {
   }
 }
 
-final repo = Repo();
+/// Screenshot tests swap this for one with sample data.
+Repo repo = Repo();

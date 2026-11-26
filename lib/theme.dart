@@ -24,7 +24,8 @@ class AppColors {
   static const dangerTint = Color(0xFFF9DEDC);
 }
 
-ThemeData buildTheme() {
+/// [fontFamily] is only for screenshot tests, which load the same typeface from files.
+ThemeData buildTheme({String? fontFamily}) {
   final base = ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
@@ -37,7 +38,9 @@ ThemeData buildTheme() {
   );
 
   // IBM Plex Sans Arabic covers both Arabic and Latin, so both languages share one typeface.
-  final text = GoogleFonts.ibmPlexSansArabicTextTheme(base.textTheme)
+  final text = (fontFamily != null
+          ? base.textTheme.apply(fontFamily: fontFamily)
+          : GoogleFonts.ibmPlexSansArabicTextTheme(base.textTheme))
       .apply(bodyColor: AppColors.ink, displayColor: AppColors.ink);
 
   OutlineInputBorder border(Color c, double w) => OutlineInputBorder(

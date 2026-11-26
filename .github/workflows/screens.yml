@@ -1,0 +1,51 @@
+# Renders the main screens with sample data and saves them as pictures in screenshots/out,
+# so the design can be reviewed without a phone. Runs on the "screens" branch or by hand.
+name: Screen pictures
+
+on:
+  push:
+    branches: [screens]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  pictures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Get packages and translations
+        run: |
+          flutter pub get
+          flutter gen-l10n
+
+      - name: Get the app's typeface
+        run: |
+          mkdir -p screenshots/fonts
+          for w in Regular Medium SemiBold Bold; do
+            curl -sSfL -o "screenshots/fonts/IBMPlexSansArabic-$w.ttf" \
+              "https://raw.githubusercontent.com/google/fonts/main/ofl/ibmplexsansarabic/IBMPlexSansArabic-$w.ttf"
+          done
+          ls -la screenshots/fonts
+
+      - name: Render the screens
+        run: |
+          rm -rf screenshots/out
+          flutter test screenshots --update-goldens 2>&1 | tee /tmp/log.txt || true
+          mkdir -p screenshots/out
+          grep -E "OVERFLOW|EXCEPTION|Error|error|failed|✓|✗|\+[0-9]+" /tmp/log.txt | tail -150 > screenshots/out/log.txt || true
+
+      - name: Save the pictures to the branch
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -f screenshots/out
+          git commit -m "Screen pictures [skip ci]" || echo "nothing new"
+          git push
