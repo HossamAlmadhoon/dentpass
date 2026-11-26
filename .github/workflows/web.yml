@@ -1,0 +1,76 @@
+# Builds the web version of DentPass and publishes it on GitHub Pages
+# every time code is pushed to main. Open it on any phone at:
+# https://<your-username>.github.io/dentpass/
+name: Build and publish web app
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  # The Supabase project URL and anon key are meant to be public:
+  # the database rules decide what each user may see. Never put the service_role key here.
+  SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://ezfhozjfegtcyrwmvqpc.supabase.co' }}
+  SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY || 'sb_publishable_ly8qNNEONqmFxlj_nkfcGg_xtpn5SJe' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Add the web platform files
+        run: flutter create --platforms web --project-name dentpass --org com.dentpass .
+
+      - name: Name the home-screen app
+        run: |
+          sed -i 's/"name": "dentpass"/"name": "DentPass"/; s/"short_name": "dentpass"/"short_name": "DentPass"/; s/"theme_color": "[^"]*"/"theme_color": "#0F5C52"/; s/"background_color": "[^"]*"/"background_color": "#F4F6F4"/' web/manifest.json
+          sed -i 's/<title>dentpass<\/title>/<title>DentPass<\/title>/; s/content="dentpass"/content="DentPass"/' web/index.html
+
+      - name: Get packages and translations
+        run: |
+          flutter pub get
+          flutter gen-l10n
+
+      - name: Check the code
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Build
+        run: |
+          case "$SUPABASE_URL" in https://*) ;; *) echo "Set SUPABASE_URL to your Supabase project URL"; exit 1;; esac
+          flutter build web --release \
+            --base-href "/${{ github.event.repository.name }}/" \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,234 @@
+{
+  "@@locale": "en",
+  "appName": "DentPass",
+  "authIntro": "Book seats to watch cases, courses, chairs for rent and shift cover, posted by checked dentists.",
+  "signInTitle": "Sign in",
+  "signUpTitle": "Create an account",
+  "email": "Email",
+  "password": "Password",
+  "signIn": "Sign in",
+  "signUp": "Create account",
+  "haveAccount": "Already have an account? Sign in",
+  "noAccount": "New to DentPass? Create an account",
+  "checkEmail": "Check your email to confirm your account, then sign in.",
+  "passwordTooShort": "Use at least 8 characters.",
+  "emailInvalid": "Enter a valid email.",
+  "wrongLogin": "Email or password is wrong.",
+  "verifyTitle": "Check your details",
+  "verifyIntro": "We check every member with the Egyptian Dental Syndicate before they can post or book.",
+  "fullName": "Full name",
+  "phone": "Mobile number",
+  "iAmA": "I am a",
+  "roleDentist": "Dentist",
+  "roleAssistant": "Dental assistant",
+  "syndicateNo": "Syndicate number",
+  "area": "Area",
+  "syndicateCard": "Syndicate card",
+  "nationalId": "National ID",
+  "addPhoto": "Add photo",
+  "photoAdded": "Photo added",
+  "sendForCheck": "Send for checking",
+  "required": "Required",
+  "rejectedTitle": "We couldn't approve your details",
+  "rejectedReason": "Reason: {reason}",
+  "@rejectedReason": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "pendingTitle": "We're checking your details",
+  "pendingBody": "You can use DentPass as soon as your account is approved. We'll let you know here.",
+  "checkAgain": "Check again",
+  "signOut": "Sign out",
+  "tabExplore": "Explore",
+  "tabPost": "Post",
+  "tabBookings": "Bookings",
+  "tabProfile": "Profile",
+  "exploreTitle": "Book a seat, a chair or a cover",
+  "filterAll": "All",
+  "filterLearn": "Learn",
+  "filterRent": "Rent",
+  "filterCover": "Cover",
+  "allAreas": "All areas",
+  "emptyFeed": "No slots here yet.",
+  "emptyFeedAction": "Post a slot",
+  "kindObserve": "Watch a case",
+  "kindCourse": "Course",
+  "kindRent": "Chair for rent",
+  "kindCover": "Cover needed",
+  "placesLeft": "Places left: {count}",
+  "@placesLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "openForOffers": "Open for offers",
+  "full": "Full",
+  "priceEgp": "EGP {amount}",
+  "@priceEgp": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "free": "Free",
+  "when": "When",
+  "where": "Where",
+  "price": "Price",
+  "pay": "Pay",
+  "places": "Places",
+  "addressAfterAccept": "Exact address shared when the host accepts",
+  "hostedBy": "Hosted by {name}",
+  "@hostedBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "syndicateChecked": "Syndicate checked",
+  "actionBookSeat": "Book a seat",
+  "actionBookChair": "Book this chair",
+  "actionOfferCover": "Offer to cover",
+  "manageRequests": "Manage requests",
+  "statusPending": "Waiting for the host",
+  "statusAccepted": "Accepted",
+  "statusDeclined": "Declined",
+  "statusCancelled": "Cancelled",
+  "cancelBooking": "Cancel booking",
+  "cancelOffer": "Withdraw offer",
+  "callHost": "Call host",
+  "whatsapp": "WhatsApp",
+  "needRoleLine": "Needs a {role}",
+  "@needRoleLine": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "reviewTitle": "Review and confirm",
+  "reviewPrice": "Price",
+  "reviewFee": "DentPass fee",
+  "reviewTotal": "Total",
+  "reviewPayNote": "Nothing is charged now. Pay the host by InstaPay once they accept.",
+  "reviewCoverNote": "The clinic pays you {amount} for the shift. There's no fee for you.",
+  "@reviewCoverNote": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "messageToHost": "Message to the host (optional)",
+  "confirmRequest": "Send request",
+  "requestSent": "Request sent. We'll notify you when the host answers.",
+  "errSlotFull": "This slot is full.",
+  "errAlreadyBooked": "You already have a request on this slot.",
+  "errSlotClosed": "This slot is closed.",
+  "errRoleMismatch": "This cover is for a different role.",
+  "errGeneric": "Something went wrong. Check your connection and try again.",
+  "postTitle": "Post a slot",
+  "postIntro": "Checked dentists near you can book it straight away.",
+  "whatPosting": "What are you posting?",
+  "kindObserveLine": "Seats to watch a case",
+  "kindCourseLine": "Teach a group, hands-on",
+  "kindRentLine": "Your unit, by day or hour",
+  "kindCoverLine": "A dentist or assistant",
+  "title": "Title",
+  "titleHint": "e.g. Sinus lift with immediate implant",
+  "description": "Details",
+  "descriptionHint": "What's included, what to bring, anything people should know",
+  "address": "Exact address",
+  "addressHint": "Only shared with people you accept",
+  "date": "Date",
+  "from": "From",
+  "to": "To",
+  "seats": "Seats",
+  "chairs": "Chairs",
+  "peopleNeeded": "People needed",
+  "whoNeeded": "Who do you need?",
+  "pricePerSeat": "Price per seat (EGP)",
+  "priceForSlot": "Price for the slot (EGP)",
+  "payForShift": "Pay for the shift (EGP)",
+  "photo": "Photo (optional)",
+  "postIt": "Post it",
+  "posted": "Posted. It's live in Explore now.",
+  "errEndBeforeStart": "The end time must be after the start time.",
+  "errPastDate": "Choose a time in the future.",
+  "errTitleShort": "Use at least 3 characters.",
+  "pickDate": "Choose date",
+  "myBookings": "My bookings",
+  "myPosts": "My posts",
+  "noBookings": "You haven't booked anything yet.",
+  "noPosts": "You haven't posted any slots yet.",
+  "newRequests": "Waiting for your answer: {count}",
+  "@newRequests": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noRequestsYet": "No requests yet",
+  "closed": "Closed",
+  "requests": "Requests",
+  "takingRequests": "Taking requests",
+  "accept": "Accept",
+  "decline": "Decline",
+  "call": "Call",
+  "notifications": "Notifications",
+  "noNotifications": "No notifications yet.",
+  "nRequested": "New request on \"{title}\"",
+  "@nRequested": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "nAccepted": "Your request for \"{title}\" was accepted",
+  "@nAccepted": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "nDeclined": "Your request for \"{title}\" was declined",
+  "@nDeclined": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "nCancelled": "A booking on \"{title}\" was cancelled",
+  "@nCancelled": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "nApproved": "Your account is approved. Welcome to DentPass.",
+  "nRejected": "We couldn't approve your details. Open your profile to see why.",
+  "language": "Language",
+  "statusApproved": "Approved",
+  "reviewMembers": "Review new members",
+  "adminTitle": "New members",
+  "noPending": "No one is waiting for review.",
+  "approve": "Approve",
+  "reject": "Reject",
+  "rejectReason": "Reason for rejecting",
+  "send": "Send",
+  "cancel": "Cancel",
+  "retry": "Try again",
+  "camera": "Camera",
+  "gallery": "Gallery"
+}
