@@ -35,6 +35,10 @@ class _AuthGateState extends State<AuthGate> {
       setState(() {
         _session = state.session;
         if (state.event == AuthChangeEvent.passwordRecovery) _recovering = true;
+        // A normal sign-in (for example after an expired reset link) goes to the app as usual.
+        if (state.event == AuthChangeEvent.signedIn || state.event == AuthChangeEvent.signedOut) {
+          _recovering = false;
+        }
       });
     });
   }

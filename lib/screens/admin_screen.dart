@@ -22,22 +22,9 @@ class _AdminScreenState extends State<AdminScreen> {
   void _reload() => setState(() => _items = repo.pendingMembers());
 
   Future<void> _decide(Profile p, bool approve) async {
-    final t = AppLocalizations.of(context);
     String? reason;
     if (!approve) {
-      final controller = TextEditingController();
-      reason = await showDialog<String>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(t.rejectReason),
-          content: TextField(controller: controller, autofocus: true, maxLength: 300, maxLines: 3),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.cancel)),
-            FilledButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: Text(t.send)),
-          ],
-        ),
-      );
-      controller.dispose();
+      reason = await showDialog<String>(context: context, builder: (_) => const _ReasonDialog());
       if (reason == null) return;
     }
     try {
@@ -97,6 +84,37 @@ class _AdminScreenState extends State<AdminScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+/// Owns its text field, so the field is cleaned up only after the dialog has closed.
+class _ReasonDialog extends StatefulWidget {
+  const _ReasonDialog();
+
+  @override
+  State<_ReasonDialog> createState() => _ReasonDialogState();
+}
+
+class _ReasonDialogState extends State<_ReasonDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(t.rejectReason),
+      content: TextField(controller: _controller, autofocus: true, maxLength: 300, maxLines: 3),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(t.cancel)),
+        FilledButton(onPressed: () => Navigator.pop(context, _controller.text.trim()), child: Text(t.send)),
+      ],
     );
   }
 }
