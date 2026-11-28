@@ -7,21 +7,24 @@ import 'package:dentpass/ui/widgets.dart';
 
 /// Rate the other person after a slot: 1 to 5 stars and an optional comment.
 /// Returns true when the rating was sent.
-Future<bool> showReviewSheet(BuildContext context, {required String bookingId, required String title}) async {
+Future<bool> showReviewSheet(BuildContext context, {required String bookingId, required String title, int stars = 0}) async {
   final sent = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (_) => _ReviewSheet(bookingId: bookingId, title: title),
+    builder: (_) => _ReviewSheet(bookingId: bookingId, title: title, stars: stars),
   );
   if (sent == true && context.mounted) showMessage(context, AppLocalizations.of(context).ratingSent);
   return sent == true;
 }
 
 class _ReviewSheet extends StatefulWidget {
-  const _ReviewSheet({required this.bookingId, required this.title});
+  const _ReviewSheet({required this.bookingId, required this.title, this.stars = 0});
   final String bookingId;
   final String title;
+
+  /// Stars already picked, for example on the Home card.
+  final int stars;
 
   @override
   State<_ReviewSheet> createState() => _ReviewSheetState();
@@ -29,7 +32,7 @@ class _ReviewSheet extends StatefulWidget {
 
 class _ReviewSheetState extends State<_ReviewSheet> {
   final _comment = TextEditingController();
-  int _stars = 0;
+  late int _stars = widget.stars;
   bool _busy = false;
   String? _error;
 

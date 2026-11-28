@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:dentpass/data/areas.dart';
 import 'package:dentpass/data/models.dart';
@@ -153,12 +154,6 @@ class _SlotDetailScreenState extends State<SlotDetailScreen> {
         final going = isHost || booking?.status == BookingStatus.accepted;
         return Scaffold(
           appBar: AppBar(actions: [
-            if (going && !slot.hasEnded)
-              IconButton(
-                tooltip: t.addToCalendar,
-                onPressed: () => _addToCalendar(slot),
-                icon: const Icon(Icons.event_available_outlined),
-              ),
             if (!isHost)
               PopupMenuButton<String>(
                 onSelected: (_) => showReportSheet(context, slotId: slot.id, memberId: slot.hostId, title: t.reportSlot),
@@ -195,18 +190,29 @@ class _SlotDetailScreenState extends State<SlotDetailScreen> {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4),
                           child: Row(children: [
-                            Avatar(name: slot.hostName, photoUrl: null),
+                            Avatar(
+                              name: slot.hostName,
+                              photoUrl: slot.hostAvatar == null ? null : repo.avatarUrl(slot.hostAvatar!),
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text(slot.hostName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-                                Row(children: [
-                                  const Icon(Icons.verified, size: 15, color: AppColors.nile),
-                                  const SizedBox(width: 4),
-                                  Text(t.syndicateChecked, style: const TextStyle(fontSize: 13, color: AppColors.body)),
-                                  const SizedBox(width: 10),
-                                  RatingLine(rating: slot.hostRating, count: slot.hostReviews, compact: true),
-                                ]),
+                                NameWithMark(
+                                  name: slot.hostName,
+                                  verified: true,
+                                  markSize: 15,
+                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                                ),
+                                const SizedBox(height: 2),
+                                if (slot.hostReviews > 0 && slot.hostRating != null)
+                                  Row(children: [
+                                    Stars(rating: slot.hostRating!, size: 15),
+                                    const SizedBox(width: 6),
+                                    Text('${slot.hostRating!.toStringAsFixed(1)} (${slot.hostReviews})',
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                  ])
+                                else
+                                  Text(t.noRatingsYet, style: const TextStyle(fontSize: 13, color: AppColors.body)),
                               ]),
                             ),
                             const Icon(Icons.chevron_right, color: AppColors.muted),
@@ -232,6 +238,8 @@ class _SlotDetailScreenState extends State<SlotDetailScreen> {
                       FactRow(
                         label: slot.kind == SlotKind.cover ? t.pay : t.price,
                         value: priceText(context, slot.priceEgp),
+                        note: _priceNote(context, slot, booking, snap.data!.feePercent),
+                        noteColor: slot.negotiable ? AppColors.nile : null,
                       ),
                       FactRow(
                         label: t.places,
@@ -246,6 +254,11 @@ class _SlotDetailScreenState extends State<SlotDetailScreen> {
                       if (slot.hasLocation) ...[
                         const SizedBox(height: 18),
                         SlotMiniMap(slot: slot),
+                      ],
+                      if (!isHost && booking?.status == BookingStatus.accepted && slot.kind != SlotKind.cover &&
+                          booking!.totalEgp > 0) ...[
+                        const SizedBox(height: 20),
+                        _PayBox(slot: slot, booking: booking, onChanged: _reload),
                       ],
                       if (slot.hostPhone != null) ...[
                         const SizedBox(height: 20),
@@ -267,6 +280,14 @@ class _SlotDetailScreenState extends State<SlotDetailScreen> {
                           ),
                         ]),
                       ],
+                      if (going && !slot.hasEnded) ...[
+                        const SizedBox(height: 10),
+                        OutlinedButton.icon(
+                          onPressed: () => _addToCalendar(slot),
+                          icon: const Icon(Icons.event_available_outlined),
+                          label: Text(t.addToCalendar),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -280,6 +301,25 @@ class _SlotDetailScreenState extends State<SlotDetailScreen> {
         );
       },
     );
+  }
+
+  /// Under the price: what you'll pay with the fee, your offer, or that the host takes offers.
+  String? _priceNote(BuildContext context, Slot slot, Booking? booking, int feePercent) {
+    final t = AppLocalizations.of(context);
+    if (booking != null && booking.isActive) {
+      final parts = <String>[
+        if (booking.offerEgp != null) t.yourOffer(priceText(context, booking.offerEgp!)),
+        if (slot.kind != SlotKind.cover && booking.feeEgp > 0) t.totalWithFee(priceText(context, booking.totalEgp)),
+      ];
+      return parts.isEmpty ? null : parts.join('\n');
+    }
+    if (slot.hostId == widget.profile.id) return slot.negotiable ? t.negotiableHint : null;
+    final fee = slot.kind == SlotKind.cover ? 0 : (slot.priceEgp * feePercent / 100).round();
+    final parts = <String>[
+      if (fee > 0) t.totalWithFee(priceText(context, slot.priceEgp + fee)),
+      if (slot.negotiable) t.negotiableHint,
+    ];
+    return parts.isEmpty ? null : parts.join('\n');
   }
 
   Widget _actions(BuildContext context, Slot slot, Booking? booking, bool isHost, int feePercent, bool rated) {
@@ -315,6 +355,10 @@ class _SlotDetailScreenState extends State<SlotDetailScreen> {
     if (booking != null && booking.isActive) {
       return Column(mainAxisSize: MainAxisSize.min, children: [
         StatusChip(status: booking.status),
+        if (booking.status == BookingStatus.pending) ...[
+          const SizedBox(height: 6),
+          Text(t.pendingHint, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.body, fontSize: 13)),
+        ],
         const SizedBox(height: 10),
         OutlinedButton(
           onPressed: _busy ? null : () => _cancel(booking, slot.kind),
@@ -341,5 +385,102 @@ class _SlotDetailScreenState extends State<SlotDetailScreen> {
         child: Text(actionLabel(t, slot.kind)),
       ),
     ]);
+  }
+}
+
+/// After acceptance: how much to send, where, and "I've paid".
+class _PayBox extends StatefulWidget {
+  const _PayBox({required this.slot, required this.booking, required this.onChanged});
+  final Slot slot;
+  final Booking booking;
+  final VoidCallback onChanged;
+
+  @override
+  State<_PayBox> createState() => _PayBoxState();
+}
+
+class _PayBoxState extends State<_PayBox> {
+  bool _busy = false;
+
+  Future<void> _markPaid() async {
+    final t = AppLocalizations.of(context);
+    if (!await confirmAction(context, title: t.markPaidQuestion, action: t.markPaid)) return;
+    setState(() => _busy = true);
+    try {
+      await repo.markPaid(widget.booking.id);
+      widget.onChanged();
+    } catch (e) {
+      if (mounted) showMessage(context, errorText(context, e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final b = widget.booking;
+    final instapay = widget.slot.hostInstapay;
+    final paid = b.paidAt != null;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: paid ? AppColors.nileTint : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: paid ? AppColors.nileTint : AppColors.line, width: 1.5),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(paid ? Icons.check_circle : Icons.payments_outlined, color: AppColors.nile),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(paid ? t.paidTitle : t.payTitle(priceText(context, b.totalEgp)),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          ),
+        ]),
+        const SizedBox(height: 8),
+        if (paid)
+          Text(t.paidBody(fullDate(context, b.paidAt!.toLocal())), style: const TextStyle(color: AppColors.body, height: 1.45))
+        else ...[
+          if (instapay != null && instapay.isNotEmpty) ...[
+            Text(t.payByInstapay, style: const TextStyle(color: AppColors.body)),
+            const SizedBox(height: 6),
+            Material(
+              color: AppColors.ground,
+              borderRadius: BorderRadius.circular(12),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () async {
+                  await Clipboard.setData(ClipboardData(text: instapay));
+                  if (context.mounted) showMessage(context, t.copied);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  child: Row(children: [
+                    Expanded(
+                      child: Text(instapay,
+                          textDirection: TextDirection.ltr,
+                          textAlign: TextAlign.start,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                    ),
+                    const Icon(Icons.copy_rounded, size: 20, color: AppColors.nile),
+                    const SizedBox(width: 4),
+                    Text(t.copy, style: const TextStyle(color: AppColors.nile, fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+              ),
+            ),
+          ] else
+            Text(t.askHostInstapay, style: const TextStyle(color: AppColors.body, height: 1.45)),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: _busy ? null : _markPaid,
+            icon: const Icon(Icons.done_rounded),
+            label: Text(t.markPaid),
+          ),
+        ],
+      ]),
+    );
   }
 }

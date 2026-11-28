@@ -567,5 +567,134 @@
   "papersCheckingTitle": "We're checking your papers",
   "papersCheckingBody": "This usually takes a day. You can browse and book meanwhile, and post once you're verified.",
   "papersCheckingShort": "Papers being checked",
-  "verifySent": "Papers sent. We'll let you know once they're checked."
+  "verifySent": "Papers sent. We'll let you know once they're checked.",
+  "addInstapayNudge": "Add your InstaPay so guests can pay you",
+  "alertMeForThis": "Alert me about new slots like these",
+  "alertsShort": "Get notified when matching slots are posted",
+  "askHostInstapay": "The host hasn't added InstaPay yet. Call or WhatsApp them to agree how to pay.",
+  "clearFilters": "Clear",
+  "copied": "Copied",
+  "copy": "Copy",
+  "egp": "EGP",
+  "enterYourPrice": "Type the price you suggest",
+  "filters": "Filters",
+  "instapayHelp": "Shown only to people you accept, so they can pay you",
+  "instapayHint": "name@instapay or 01xxxxxxxxx",
+  "instapayLabel": "Your InstaPay",
+  "instapayShort": "InstaPay: {value}",
+  "@instapayShort": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "markPaid": "I've paid",
+  "markPaidQuestion": "Did you send the money?",
+  "moreOptions": "More options",
+  "nPaid": "Payment sent for \"{title}\"",
+  "@nPaid": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "nearMeHint": "Closest slots first",
+  "negotiable": "Negotiable",
+  "negotiableHint": "Price is negotiable. You can suggest yours.",
+  "newRequest": "New",
+  "noRatingsYet": "No ratings yet",
+  "paidBody": "You told the host you paid on {date}.",
+  "@paidBody": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "paidTitle": "Paid",
+  "past": "Past",
+  "payByInstapay": "Send it by InstaPay to:",
+  "payTitle": "Pay {amount}",
+  "@payTitle": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentDue": "Pay {amount}",
+  "@paymentDue": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "pendingHint": "Hosts usually answer within a day. We'll let you know.",
+  "priceNegotiable": "Price is negotiable",
+  "priceNegotiableCoverHint": "People can suggest their own pay when they offer",
+  "priceNegotiableHint": "People can suggest their own price when they ask",
+  "ratingsCount": "{count, plural, =1{1 rating} other{{count} ratings}}",
+  "@ratingsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "saysPaid": "Says they paid on {date}",
+  "@saysPaid": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "searchShort": "Search",
+  "showResults": "Show results",
+  "starsOutOf5": "{rating} out of 5 stars",
+  "@starsOutOf5": {
+    "placeholders": {
+      "rating": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestPrice": "Suggest a different price",
+  "suggestPriceHint": "The host asks {price}",
+  "@suggestPriceHint": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "theirOffer": "Their offer: {price}",
+  "@theirOffer": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "totalWithFee": "{total} with the DentPass fee",
+  "@totalWithFee": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "upcoming": "Upcoming",
+  "yourOffer": "Your offer: {price}",
+  "@yourOffer": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "yourPrice": "Your price"
 }

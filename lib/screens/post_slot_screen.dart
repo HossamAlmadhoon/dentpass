@@ -47,6 +47,9 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
   late final _details = TextEditingController(text: _old?.description ?? '');
   late final _address = TextEditingController(text: _old?.address ?? '');
   late final _price = TextEditingController(text: _old == null ? '' : '${_old.priceEgp}');
+  late bool _negotiable = _old?.negotiable ?? false;
+  final _instapay = TextEditingController();
+  String _savedInstapay = '';
   late SlotKind _kind = _old?.kind ?? SlotKind.observe;
   late String? _area = _old?.area;
   late DateTime? _date = widget.template != null ? null : _old?.startsAt;
@@ -69,7 +72,19 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
     _details.dispose();
     _address.dispose();
     _price.dispose();
+    _instapay.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Where guests pay: kept on the profile, filled in here the first time
+    repo.myProfile().then((p) {
+      if (!mounted) return;
+      _savedInstapay = p.instapay ?? '';
+      if (_instapay.text.isEmpty) _instapay.text = _savedInstapay;
+    }).catchError((_) {});
   }
 
   void _setKind(SlotKind k) => setState(() {
@@ -148,6 +163,11 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
           paths.add(await repo.uploadImage('slot-photos', '${DateTime.now().millisecondsSinceEpoch}-$n.jpg', p.file!));
         }
       }
+      final instapay = _instapay.text.trim();
+      if (_kind != SlotKind.cover && instapay != _savedInstapay) {
+        await repo.saveInstapay(instapay);
+        _savedInstapay = instapay;
+      }
       if (_editing) {
         final id = _old!.id;
         await repo.updateSlot(
@@ -164,6 +184,7 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
           photoPaths: paths,
           lat: _location?.latitude,
           lng: _location?.longitude,
+          negotiable: _negotiable,
         );
         await repo.removeSlotPhotos(_old.photoPaths.where((p) => !paths.contains(p)).toList());
         widget.onPosted(id);
@@ -182,6 +203,7 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
           photoPaths: paths,
           lat: _location?.latitude,
           lng: _location?.longitude,
+          negotiable: _negotiable,
         );
         widget.onPosted(id);
       }
@@ -347,6 +369,22 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
               decoration: InputDecoration(labelText: priceLabel),
               validator: (v) => (v == null || v.isEmpty) ? t.required : null,
             ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _negotiable,
+              onChanged: (v) => setState(() => _negotiable = v),
+              title: Text(t.priceNegotiable, style: const TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: Text(_kind == SlotKind.cover ? t.priceNegotiableCoverHint : t.priceNegotiableHint),
+            ),
+            if (_kind != SlotKind.cover) ...[
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _instapay,
+                textDirection: TextDirection.ltr,
+                maxLength: 60,
+                decoration: InputDecoration(labelText: t.instapayLabel, hintText: t.instapayHint, helperText: t.instapayHelp),
+              ),
+            ],
             if (_error != null) ...[
               const SizedBox(height: 14),
               Text(_error!, style: const TextStyle(color: AppColors.danger, fontWeight: FontWeight.w600)),
@@ -492,7 +530,7 @@ class _TimeButton extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.muted)),
         ),
         const SizedBox(width: 8),
-        Text(value.format(context)),
+        Text(time(context, DateTime(2000, 1, 1, value.hour, value.minute))),
       ]),
     );
   }

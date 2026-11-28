@@ -113,11 +113,33 @@ class _ManageSlotScreenState extends State<ManageSlotScreen> {
           appBar: AppBar(
             title: Text(t.requests, style: const TextStyle(fontWeight: FontWeight.w800)),
             actions: [
-              if (slot != null) ...[
-                IconButton(tooltip: t.editSlot, onPressed: () => _edit(slot), icon: const Icon(Icons.edit_outlined)),
-                IconButton(tooltip: t.duplicate, onPressed: () => _duplicate(slot), icon: const Icon(Icons.copy_all_outlined)),
-                IconButton(tooltip: t.deleteSlot, onPressed: () => _delete(slot), icon: const Icon(Icons.delete_outline)),
-              ],
+              if (slot != null)
+                PopupMenuButton<String>(
+                  tooltip: t.moreOptions,
+                  onSelected: (v) => switch (v) {
+                    'edit' => _edit(slot),
+                    'copy' => _duplicate(slot),
+                    _ => _delete(slot),
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: ListTile(leading: const Icon(Icons.edit_outlined), title: Text(t.editSlot)),
+                    ),
+                    PopupMenuItem(
+                      value: 'copy',
+                      child: ListTile(leading: const Icon(Icons.copy_all_outlined), title: Text(t.duplicate)),
+                    ),
+                    const PopupMenuDivider(),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: ListTile(
+                        leading: const Icon(Icons.delete_outline, color: AppColors.danger),
+                        title: Text(t.deleteSlot, style: const TextStyle(color: AppColors.danger)),
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
           body: Builder(builder: (context) {
@@ -228,9 +250,33 @@ class _RequestTile extends StatelessWidget {
                 ]),
               ]),
             ),
-            StatusChip(status: r.status),
+            StatusChip(status: r.status, forHost: true),
           ]),
         ),
+        if (r.offerEgp != null) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(color: AppColors.blueTint, borderRadius: BorderRadius.circular(10)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.local_offer_outlined, size: 18, color: AppColors.blue),
+              const SizedBox(width: 6),
+              Text(t.theirOffer(priceText(context, r.offerEgp!)),
+                  style: const TextStyle(color: AppColors.blue, fontWeight: FontWeight.w700)),
+            ]),
+          ),
+        ],
+        if (r.status == BookingStatus.accepted && r.paidAt != null) ...[
+          const SizedBox(height: 10),
+          Row(children: [
+            const Icon(Icons.payments_outlined, size: 18, color: AppColors.nile),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(t.saysPaid(fullDate(context, r.paidAt!.toLocal())),
+                  style: const TextStyle(color: AppColors.nile, fontWeight: FontWeight.w700)),
+            ),
+          ]),
+        ],
         if (r.message.isNotEmpty) ...[
           const SizedBox(height: 10),
           Text(r.message, style: const TextStyle(fontSize: 15, height: 1.5, color: AppColors.body)),

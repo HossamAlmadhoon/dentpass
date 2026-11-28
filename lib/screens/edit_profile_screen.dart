@@ -20,6 +20,7 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _form = GlobalKey<FormState>();
   late final _phone = TextEditingController(text: widget.profile.phone ?? '');
+  late final _instapay = TextEditingController(text: widget.profile.instapay ?? '');
   late final _bio = TextEditingController(text: widget.profile.bio);
   late String? _area = widget.profile.area;
   XFile? _photo;
@@ -29,6 +30,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void dispose() {
     _phone.dispose();
+    _instapay.dispose();
     _bio.dispose();
     super.dispose();
   }
@@ -51,7 +53,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         // A new name each time, so phones don't keep showing the old cached photo
         avatar = await repo.uploadImage('avatars', 'avatar-${DateTime.now().millisecondsSinceEpoch}.jpg', _photo!);
       }
-      await repo.updateProfile(phone: _phone.text.trim(), area: _area!, bio: _bio.text.trim(), avatarPath: avatar);
+      await repo.updateProfile(phone: _phone.text.trim(), area: _area!, bio: _bio.text.trim(), avatarPath: avatar, instapay: _instapay.text);
       final old = widget.profile.avatarPath;
       if (_photo != null && old != null) {
         try {
@@ -132,6 +134,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               validator: (v) => v == null ? t.required : null,
             ),
             const SizedBox(height: 12),
+            TextFormField(
+              controller: _instapay,
+              textDirection: TextDirection.ltr,
+              maxLength: 60,
+              decoration: InputDecoration(labelText: t.instapayLabel, hintText: t.instapayHint, helperText: t.instapayHelp),
+            ),
+            const SizedBox(height: 4),
             TextFormField(
               controller: _bio,
               maxLength: 500,

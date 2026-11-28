@@ -98,8 +98,12 @@ class _MemberScreenState extends State<MemberScreen> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    RatingLine(rating: member.rating, count: member.reviews),
-                    const SizedBox(height: 8),
+                    RatingSummary(rating: member.rating, count: member.reviews),
+                    if (reviews.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _StarBars(reviews: reviews),
+                    ],
+                    const Divider(height: 24),
                     Text(t.memberSince(monthShort(context, member.memberSince) + ' ${member.memberSince.year}'),
                         style: const TextStyle(color: AppColors.body)),
                     Text(t.hostedCount(member.hosted), style: const TextStyle(color: AppColors.body)),
@@ -153,7 +157,7 @@ class _ReviewTile extends StatelessWidget {
         Row(children: [
           for (var i = 1; i <= 5; i++)
             Icon(i <= r.stars ? Icons.star_rounded : Icons.star_outline_rounded,
-                size: 18, color: i <= r.stars ? const Color(0xFFB7791F) : AppColors.field),
+                size: 18, color: i <= r.stars ? Stars.gold : AppColors.field),
           const SizedBox(width: 8),
           Expanded(
             child: Text(r.reviewerName,
@@ -173,5 +177,44 @@ class _ReviewTile extends StatelessWidget {
           ),
       ]),
     );
+  }
+}
+
+/// How many people gave 5, 4, 3, 2 and 1 stars, as short bars.
+class _StarBars extends StatelessWidget {
+  const _StarBars({required this.reviews});
+  final List<Review> reviews;
+
+  @override
+  Widget build(BuildContext context) {
+    final counts = List<int>.filled(6, 0);
+    for (final r in reviews) {
+      counts[r.stars.clamp(1, 5)]++;
+    }
+    final most = counts.reduce((a, b) => a > b ? a : b);
+    return Column(children: [
+      for (var star = 5; star >= 1; star--)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(children: [
+            SizedBox(width: 14, child: Text('$star', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700))),
+            const Icon(Icons.star_rounded, size: 14, color: Stars.gold),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(99),
+                child: LinearProgressIndicator(
+                  value: most == 0 ? 0 : counts[star] / most,
+                  minHeight: 7,
+                  color: Stars.gold,
+                  backgroundColor: AppColors.track,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(width: 22, child: Text('${counts[star]}', style: const TextStyle(fontSize: 12, color: AppColors.muted))),
+          ]),
+        ),
+    ]);
   }
 }

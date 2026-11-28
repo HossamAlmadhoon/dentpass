@@ -9,6 +9,7 @@ import 'package:dentpass/data/models.dart';
 import 'package:dentpass/data/repo.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
 import 'package:dentpass/screens/manage_slot_screen.dart';
+import 'package:dentpass/screens/review_sheet.dart';
 import 'package:dentpass/screens/slot_detail_screen.dart';
 import 'package:dentpass/services/location.dart';
 import 'package:dentpass/services/notifications.dart';
@@ -32,6 +33,23 @@ class HomeHeader extends StatefulWidget {
 
 class _HomeHeaderState extends State<HomeHeader> {
   late Future<HomeSummary> _home = repo.home();
+  late Future<Booking?> _toRate = _findToRate();
+
+  /// A finished booking from the last two weeks that hasn't been rated yet.
+  Future<Booking?> _findToRate() async {
+    try {
+      final results = await Future.wait([repo.myBookings(), repo.myRatedBookingIds()]);
+      final rated = results[1] as Set<String>;
+      final since = DateTime.now().subtract(const Duration(days: 14));
+      for (final b in results[0] as List<Booking>) {
+        final s = b.slot;
+        if (s != null && b.status == BookingStatus.accepted && s.hasEnded && s.endsAt.isAfter(since) && !rated.contains(b.id)) {
+          return b;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
   Timer? _tick;
 
   @override
@@ -46,7 +64,10 @@ class _HomeHeaderState extends State<HomeHeader> {
   @override
   void didUpdateWidget(covariant HomeHeader old) {
     super.didUpdateWidget(old);
-    if (old.refreshKey != widget.refreshKey) _home = repo.home();
+    if (old.refreshKey != widget.refreshKey) {
+      _home = repo.home();
+      _toRate = _findToRate();
+    }
   }
 
   @override
@@ -108,22 +129,31 @@ class _HomeHeaderState extends State<HomeHeader> {
           ]);
         },
       ),
+      FutureBuilder<Booking?>(
+        future: _toRate,
+        builder: (context, snap) {
+          final b = snap.data;
+          if (b == null) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _RateCard(
+              booking: b,
+              onRate: (stars) async {
+                final t = AppLocalizations.of(context);
+                if (await showReviewSheet(context, bookingId: b.id, title: t.rateHost, stars: stars) && mounted) {
+                  setState(() => _toRate = _findToRate());
+                }
+              },
+            ),
+          );
+        },
+      ),
       const _NotificationsPrompt(),
     ]);
   }
 }
 
-String _relativeDay(BuildContext context, DateTime d) {
-  final t = AppLocalizations.of(context);
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
-  final day = DateTime(d.year, d.month, d.day);
-  final diff = day.difference(today).inDays;
-  final clock = time(context, d);
-  if (diff == 0) return '${t.today} $clock';
-  if (diff == 1) return '${t.tomorrow} $clock';
-  return '${fullDate(context, d)} $clock';
-}
+String _relativeDay(BuildContext context, DateTime d) => '${dayText(context, d)} ${time(context, d)}';
 
 class _NextSlotCard extends StatelessWidget {
   const _NextSlotCard({required this.next, required this.onOpen});
@@ -168,7 +198,8 @@ class _NextSlotCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               [
-                _relativeDay(context, next.startsAt),
+                // The day is in the badge above; here only the hours
+                hoursText(context, next.startsAt, next.endsAt),
                 next.hostName,
                 next.address.isNotEmpty ? next.address : areaName(context, next.area),
               ].where((s) => s.isNotEmpty).join(' · '),
@@ -329,6 +360,38 @@ class _NotificationsPromptState extends State<_NotificationsPrompt> {
             ),
           if (!install) const SizedBox(width: 8),
           TextButton(onPressed: _dismiss, child: Text(t.notNow)),
+        ]),
+      ]),
+    );
+  }
+}
+
+/// "How was it?" with five stars to tap, after a slot you attended.
+class _RateCard extends StatelessWidget {
+  const _RateCard({required this.booking, required this.onRate});
+  final Booking booking;
+  final ValueChanged<int> onRate;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final s = booking.slot!;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(t.howWasIt, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 2),
+        Text(s.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.body)),
+        const SizedBox(height: 4),
+        Row(children: [
+          for (var i = 1; i <= 5; i++)
+            IconButton(
+              tooltip: t.starsOutOf5('$i'),
+              visualDensity: VisualDensity.compact,
+              onPressed: () => onRate(i),
+              icon: const Icon(Icons.star_outline_rounded, size: 32, color: Stars.gold),
+            ),
         ]),
       ]),
     );

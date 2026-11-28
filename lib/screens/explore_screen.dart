@@ -183,6 +183,106 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
+  /// How many filters are on besides the type: place, time, near me.
+  int get _extraFilters => (_nearMe ? 1 : 0) + (_when != _When.any ? 1 : 0) + (_area != null ? 1 : 0);
+
+  void _clearFilters() {
+    _nearMe = false;
+    _when = _When.any;
+    _day = null;
+    _area = null;
+    _load();
+  }
+
+  /// Time, area and "near me" live in a sheet, so the slots stay on the first screen.
+  Future<void> _openFilters() async {
+    final t = AppLocalizations.of(context);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          void change(VoidCallback f) {
+            f();
+            setSheet(() {});
+            _load();
+          }
+
+          Widget whenChip(String label, _When w, {VoidCallback? onTap, IconData? icon}) => ChoiceChip(
+                avatar: icon == null ? null : Icon(icon, size: 18),
+                label: Text(label),
+                selected: _when == w,
+                showCheckmark: false,
+                onSelected: (_) => onTap != null ? onTap() : change(() => _when = w),
+              );
+
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Expanded(child: Text(t.filters, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800))),
+                  if (_extraFilters > 0)
+                    TextButton(onPressed: () => change(_clearFilters), child: Text(t.clearFilters)),
+                ]),
+                const SizedBox(height: 12),
+                SectionTitle(t.when),
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  whenChip(t.anyTime, _When.any),
+                  whenChip(t.thisWeek, _When.week),
+                  whenChip(t.weekend, _When.weekend),
+                  whenChip(
+                    _when == _When.day && _day != null ? fullDate(context, _day!) : t.pickDate,
+                    _When.day,
+                    icon: Icons.calendar_today_outlined,
+                    onTap: () async {
+                      await _chooseDay();
+                      setSheet(() {});
+                    },
+                  ),
+                ]),
+                const SizedBox(height: 18),
+                DropdownButtonFormField<String?>(
+                  initialValue: _area,
+                  decoration: InputDecoration(prefixIcon: const Icon(Icons.place_outlined), labelText: t.area),
+                  items: [
+                    DropdownMenuItem<String?>(value: null, child: Text(t.allAreas)),
+                    for (final a in areaKeys) DropdownMenuItem<String?>(value: a, child: Text(areaName(context, a))),
+                  ],
+                  onChanged: (v) => change(() => _area = v),
+                ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  secondary: const Icon(Icons.near_me_outlined),
+                  title: Text(t.nearMe, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text(t.nearMeHint),
+                  value: _nearMe,
+                  onChanged: (_) async {
+                    await _toggleNearMe();
+                    setSheet(() {});
+                  },
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _saveAlert();
+                  },
+                  icon: const Icon(Icons.notification_add_outlined),
+                  label: Text(t.alertMeForThis),
+                ),
+                const SizedBox(height: 10),
+                FilledButton(onPressed: () => Navigator.pop(ctx), child: Text(t.showResults)),
+              ]),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _filters(AppLocalizations t) {
     final labels = {
       _Filter.all: t.filterAll,
@@ -190,82 +290,72 @@ class _ExploreScreenState extends State<ExploreScreen> {
       _Filter.rent: t.filterRent,
       _Filter.cover: t.filterCover,
     };
-    Widget chip(String label, bool selected, VoidCallback onTap, {IconData? icon}) => Padding(
-          padding: const EdgeInsetsDirectional.only(end: 8),
-          child: FilterChip(
-            avatar: icon == null ? null : Icon(icon, size: 18),
-            label: Text(label),
-            selected: selected,
-            showCheckmark: false,
-            onSelected: (_) => onTap(),
+    Widget square({required IconData icon, required String tooltip, required VoidCallback onTap, int badge = 0}) =>
+        Padding(
+          padding: const EdgeInsetsDirectional.only(start: 8),
+          child: IconButton.outlined(
+            tooltip: tooltip,
+            style: IconButton.styleFrom(
+              minimumSize: const Size(50, 50),
+              backgroundColor: badge > 0 ? AppColors.nileTint : Colors.white,
+              side: const BorderSide(color: AppColors.field, width: 1.5),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            onPressed: onTap,
+            icon: Badge(isLabelVisible: badge > 0, label: Text('$badge'), child: Icon(icon)),
           ),
         );
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      TextField(
-        controller: _search,
-        textInputAction: TextInputAction.search,
-        decoration: InputDecoration(
-          prefixIcon: const Icon(Icons.search),
-          hintText: t.search,
-          isDense: true,
-          suffixIcon: _search.text.isEmpty
-              ? null
-              : IconButton(
-                  tooltip: t.cancel,
-                  icon: const Icon(Icons.close),
-                  onPressed: () {
-                    _search.clear();
-                    _load();
-                  },
-                ),
+      Row(children: [
+        Expanded(
+          child: TextField(
+            controller: _search,
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: t.searchShort,
+              isDense: true,
+              suffixIcon: _search.text.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: t.cancel,
+                      icon: const Icon(Icons.close),
+                      onPressed: () {
+                        _search.clear();
+                        _load();
+                      },
+                    ),
+            ),
+            onChanged: (_) => setState(() {}),
+            onSubmitted: (_) => _load(),
+          ),
         ),
-        onChanged: (_) => setState(() {}),
-        onSubmitted: (_) => _load(),
-      ),
+        square(icon: Icons.tune_rounded, tooltip: t.filters, onTap: _openFilters, badge: _extraFilters),
+        square(
+          icon: _showMap ? Icons.view_list_outlined : Icons.map_outlined,
+          tooltip: _showMap ? t.showList : t.showMap,
+          onTap: () => setState(() => _showMap = !_showMap),
+        ),
+      ]),
       const SizedBox(height: 10),
-      SegmentedButton<_Filter>(
-        showSelectedIcon: false,
-        segments: [for (final f in _Filter.values) ButtonSegment(value: f, label: Text(labels[f]!))],
-        selected: {_filter},
-        onSelectionChanged: (s) {
-          _filter = s.first;
-          _load();
-        },
-      ),
-      const SizedBox(height: 8),
       SizedBox(
-        height: 44,
+        height: 40,
         child: ListView(scrollDirection: Axis.horizontal, children: [
-          chip(t.nearMe, _nearMe, _toggleNearMe, icon: Icons.near_me_outlined),
-          chip(t.anyTime, _when == _When.any, () {
-            _when = _When.any;
-            _load();
-          }),
-          chip(t.thisWeek, _when == _When.week, () {
-            _when = _When.week;
-            _load();
-          }),
-          chip(t.weekend, _when == _When.weekend, () {
-            _when = _When.weekend;
-            _load();
-          }),
-          chip(_when == _When.day && _day != null ? fullDate(context, _day!) : t.pickDate, _when == _When.day, _chooseDay,
-              icon: Icons.calendar_today_outlined),
+          for (final f in _Filter.values)
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: 8),
+              child: ChoiceChip(
+                label: Text(labels[f]!),
+                selected: _filter == f,
+                showCheckmark: false,
+                onSelected: (_) {
+                  _filter = f;
+                  _load();
+                },
+              ),
+            ),
         ]),
-      ),
-      const SizedBox(height: 8),
-      DropdownButtonFormField<String?>(
-        initialValue: _area,
-        decoration: InputDecoration(prefixIcon: const Icon(Icons.place_outlined), labelText: t.area, isDense: true),
-        items: [
-          DropdownMenuItem<String?>(value: null, child: Text(t.allAreas)),
-          for (final a in areaKeys) DropdownMenuItem<String?>(value: a, child: Text(areaName(context, a))),
-        ],
-        onChanged: (v) {
-          _area = v;
-          _load();
-        },
       ),
     ]);
   }
@@ -282,16 +372,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
           Text(t.appName, style: const TextStyle(fontWeight: FontWeight.w800)),
         ]),
         actions: [
-          IconButton(
-            tooltip: t.alertMe,
-            onPressed: _saveAlert,
-            icon: const Icon(Icons.notification_add_outlined),
-          ),
-          IconButton(
-            tooltip: _showMap ? t.showList : t.showMap,
-            onPressed: () => setState(() => _showMap = !_showMap),
-            icon: Icon(_showMap ? Icons.view_list_outlined : Icons.map_outlined),
-          ),
           IconButton(
             tooltip: t.notifications,
             onPressed: _openNotifications,

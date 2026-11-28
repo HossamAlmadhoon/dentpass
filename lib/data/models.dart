@@ -37,6 +37,7 @@ class Profile {
     required this.isAdmin,
     required this.bio,
     required this.avatarPath,
+    this.instapay,
   });
 
   final String id;
@@ -53,6 +54,9 @@ class Profile {
   final String bio;
   final String? avatarPath;
 
+  /// Where this member receives payments as a host (InstaPay address or number).
+  final String? instapay;
+
   factory Profile.fromMap(Map<String, dynamic> m) => Profile(
         id: m['id'] as String,
         fullName: (m['full_name'] as String?) ?? '',
@@ -67,6 +71,7 @@ class Profile {
         isAdmin: (m['is_admin'] as bool?) ?? false,
         bio: (m['bio'] as String?) ?? '',
         avatarPath: m['avatar_path'] as String?,
+        instapay: m['instapay'] as String?,
       );
 
   /// Papers checked and approved: shows the verified mark and may post slots.
@@ -101,6 +106,9 @@ class Slot {
     required this.hostRating,
     required this.hostReviews,
     required this.exactLocation,
+    this.negotiable = false,
+    this.hostInstapay,
+    this.hostAvatar,
   });
 
   final String id;
@@ -126,6 +134,13 @@ class Slot {
   final double? hostRating;
   final int hostReviews;
   final bool exactLocation;
+
+  /// The host lets people suggest their own price.
+  final bool negotiable;
+
+  /// Where to pay the host; only once your booking is accepted.
+  final String? hostInstapay;
+  final String? hostAvatar;
 
   bool get hasLocation => lat != null && lng != null;
   bool get hasEnded => endsAt.isBefore(DateTime.now());
@@ -162,6 +177,9 @@ class Slot {
         hostRating: _double(m['host_rating']),
         hostReviews: _int(m['host_reviews']),
         exactLocation: (m['exact_location'] as bool?) ?? false,
+        negotiable: (m['negotiable'] as bool?) ?? false,
+        hostInstapay: m['host_instapay'] as String?,
+        hostAvatar: m['host_avatar'] as String?,
       );
 }
 
@@ -173,6 +191,8 @@ class Booking {
     required this.priceEgp,
     required this.feeEgp,
     required this.slot,
+    this.offerEgp,
+    this.paidAt,
   });
 
   final String id;
@@ -181,6 +201,14 @@ class Booking {
   final int priceEgp;
   final int feeEgp;
   final Slot? slot;
+
+  /// The price this person suggested, when the host allowed offers.
+  final int? offerEgp;
+
+  /// When this person said they sent the money.
+  final DateTime? paidAt;
+
+  int get totalEgp => priceEgp + feeEgp;
 
   bool get isActive => status == BookingStatus.pending || status == BookingStatus.accepted;
 
@@ -191,6 +219,8 @@ class Booking {
         priceEgp: _int(m['price_egp']),
         feeEgp: _int(m['fee_egp']),
         slot: m['slots'] is Map<String, dynamic> ? Slot.fromMap(m['slots'] as Map<String, dynamic>) : null,
+        offerEgp: m['offer_egp'] == null ? null : _int(m['offer_egp']),
+        paidAt: m['paid_at'] == null ? null : _date(m['paid_at']),
       );
 }
 
@@ -225,11 +255,15 @@ class SlotRequest {
     required this.role,
     required this.phone,
     this.verified = false,
+    this.offerEgp,
+    this.paidAt,
   });
 
   final String id;
   final String userId;
   final bool verified;
+  final int? offerEgp;
+  final DateTime? paidAt;
   final double? rating;
   final int reviews;
   final bool reviewed;
@@ -251,6 +285,8 @@ class SlotRequest {
         role: _enum(MemberRole.values, m['role'], MemberRole.dentist),
         phone: m['phone'] as String?,
         verified: (m['verified'] as bool?) ?? false,
+        offerEgp: m['offer_egp'] == null ? null : _int(m['offer_egp']),
+        paidAt: m['paid_at'] == null ? null : _date(m['paid_at']),
       );
 }
 

@@ -67,6 +67,10 @@ class _MyBookingsState extends State<_MyBookings> {
     if (b.status == BookingStatus.accepted && ended) {
       return Text(t.rated, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.nile));
     }
+    if (b.status == BookingStatus.accepted && b.paidAt == null && b.slot!.kind != SlotKind.cover && b.totalEgp > 0) {
+      return Text(t.paymentDue(priceText(context, b.totalEgp)),
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.amber));
+    }
     return Align(alignment: AlignmentDirectional.centerStart, child: StatusChip(status: b.status));
   }
 
@@ -80,13 +84,21 @@ class _MyBookingsState extends State<_MyBookings> {
         if (!snap.hasData) return const LoadingView();
         final (all, rated) = snap.data!;
         final items = all.where((b) => b.slot != null).toList();
+        // Coming up (soonest first), then everything else (latest first)
+        final upcoming = items.where((b) => b.isActive && !b.slot!.hasEnded).toList()
+          ..sort((a, b) => a.slot!.startsAt.compareTo(b.slot!.startsAt));
+        final past = items.where((b) => !upcoming.contains(b)).toList()
+          ..sort((a, b) => b.slot!.startsAt.compareTo(a.slot!.startsAt));
         return RefreshIndicator(
           onRefresh: () async => _reload(),
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
               if (items.isEmpty) EmptyView(text: t.noBookings),
-              for (final b in items)
+              for (final (title, list) in [(t.upcoming, upcoming), (t.past, past)])
+                if (list.isNotEmpty) ...[
+                  ListHeading(title),
+                  for (final b in list)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: SlotCard(
@@ -101,6 +113,7 @@ class _MyBookingsState extends State<_MyBookings> {
                     },
                   ),
                 ),
+                ],
             ],
           ),
         );
@@ -131,13 +144,20 @@ class _MyPostsState extends State<_MyPosts> {
         if (snap.hasError) return ErrorView(error: snap.error!, onRetry: _reload);
         if (!snap.hasData) return const LoadingView();
         final items = snap.data!;
+        final upcoming = items.where((h) => !h.slot.hasEnded).toList()
+          ..sort((a, b) => a.slot.startsAt.compareTo(b.slot.startsAt));
+        final past = items.where((h) => h.slot.hasEnded).toList()
+          ..sort((a, b) => b.slot.startsAt.compareTo(a.slot.startsAt));
         return RefreshIndicator(
           onRefresh: () async => _reload(),
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
               if (items.isEmpty) EmptyView(text: t.noPosts),
-              for (final h in items)
+              for (final (title, list) in [(t.upcoming, upcoming), (t.past, past)])
+                if (list.isNotEmpty) ...[
+                  ListHeading(title),
+                  for (final h in list)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: SlotCard(
@@ -165,6 +185,7 @@ class _MyPostsState extends State<_MyPosts> {
                     },
                   ),
                 ),
+                ],
             ],
           ),
         );

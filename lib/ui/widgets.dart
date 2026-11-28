@@ -110,8 +110,11 @@ class EmptyView extends StatelessWidget {
 }
 
 class StatusChip extends StatelessWidget {
-  const StatusChip({super.key, required this.status});
+  const StatusChip({super.key, required this.status, this.forHost = false});
   final BookingStatus status;
+
+  /// The host sees "New" for requests waiting on them, not "Waiting for the host".
+  final bool forHost;
 
   @override
   Widget build(BuildContext context) {
@@ -125,16 +128,21 @@ class StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
-      child: Text(statusName(t, status), style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w700)),
+      child: Text(forHost && status == BookingStatus.pending ? t.newRequest : statusName(t, status),
+          style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w700)),
     );
   }
 }
 
 /// A row of "label  value" used on detail screens.
 class FactRow extends StatelessWidget {
-  const FactRow({super.key, required this.label, required this.value});
+  const FactRow({super.key, required this.label, required this.value, this.note, this.noteColor});
   final String label;
   final String value;
+
+  /// A smaller line under the value.
+  final String? note;
+  final Color? noteColor;
 
   @override
   Widget build(BuildContext context) {
@@ -146,7 +154,16 @@ class FactRow extends StatelessWidget {
         children: [
           SizedBox(width: 80, child: Text(label, style: const TextStyle(fontSize: 14, color: AppColors.muted))),
           const SizedBox(width: 12),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, height: 1.4))),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, height: 1.4)),
+              if (note != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(note!, style: TextStyle(fontSize: 13, height: 1.4, color: noteColor ?? AppColors.muted)),
+                ),
+            ]),
+          ),
         ],
       ),
     );
@@ -193,7 +210,7 @@ class SlotCard extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(dayOfWeek(context, slot.startsAt),
+                    Text(dayLabel(context, slot.startsAt),
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ks.ink)),
                     Text(dayOfMonth(context, slot.startsAt),
                         style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, height: 1.1, color: ks.ink)),
@@ -244,12 +261,17 @@ class SlotCard extends StatelessWidget {
                         children: [
                           Expanded(
                             child: trailing ??
-                                Text(availabilityText(t, slot),
+                                Text('${time(context, slot.startsAt)} · ${availabilityText(t, slot)}',
                                     style: const TextStyle(
                                         fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.body)),
                           ),
-                          Text(priceText(context, slot.priceEgp),
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                            Text(priceText(context, slot.priceEgp),
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                            if (slot.negotiable)
+                              Text(t.negotiable,
+                                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.nile)),
+                          ]),
                         ],
                       ),
                     ],
@@ -376,6 +398,75 @@ class RatingLine extends StatelessWidget {
       const SizedBox(width: 2),
       Text('${rating!.toStringAsFixed(1)} ($count)',
           style: TextStyle(fontSize: size, fontWeight: FontWeight.w700, color: AppColors.ink)),
+    ]);
+  }
+}
+
+/// A small heading above a group in a list, like "Upcoming" and "Past".
+class ListHeading extends StatelessWidget {
+  const ListHeading(this.text, {super.key});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 10),
+        child: Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.body)),
+      );
+}
+
+/// Five stars, filled to the rating (halves included).
+class Stars extends StatelessWidget {
+  const Stars({super.key, required this.rating, this.size = 18});
+  final double rating;
+  final double size;
+
+  static const gold = Color(0xFFB7791F);
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: AppLocalizations.of(context).starsOutOf5(rating.toStringAsFixed(1)),
+      child: ExcludeSemantics(
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          for (var i = 1; i <= 5; i++)
+            Icon(
+              rating >= i
+                  ? Icons.star_rounded
+                  : rating >= i - 0.5
+                      ? Icons.star_half_rounded
+                      : Icons.star_outline_rounded,
+              size: size,
+              color: gold,
+            ),
+        ]),
+      ),
+    );
+  }
+}
+
+/// The rating as a big number with stars and how many people rated: used on profiles and slot pages.
+class RatingSummary extends StatelessWidget {
+  const RatingSummary({super.key, required this.rating, required this.count});
+  final double? rating;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    if (count == 0 || rating == null) {
+      return Row(mainAxisSize: MainAxisSize.min, children: [
+        const Stars(rating: 0, size: 18),
+        const SizedBox(width: 8),
+        Text(t.noRatingsYet, style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.w600)),
+      ]);
+    }
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Text(rating!.toStringAsFixed(1), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, height: 1)),
+      const SizedBox(width: 8),
+      Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+        Stars(rating: rating!, size: 17),
+        Text(t.ratingsCount(count), style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+      ]),
     ]);
   }
 }

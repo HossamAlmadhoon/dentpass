@@ -148,8 +148,10 @@ class Repo {
     required List<String> photoPaths,
     required double? lat,
     required double? lng,
+    bool negotiable = false,
   }) async {
     final row = await db.from('slots').insert({
+      'negotiable': negotiable,
       'host_id': uid,
       'kind': kind.name,
       'title': title,
@@ -185,8 +187,10 @@ class Repo {
     required List<String> photoPaths,
     required double? lat,
     required double? lng,
+    bool negotiable = false,
   }) async {
     await db.from('slots').update({
+      'negotiable': negotiable,
       'title': title,
       'description': description,
       'area': area,
@@ -249,8 +253,14 @@ class Repo {
     return row == null ? null : Booking.fromMap(row);
   }
 
-  Future<void> book(String slotId, String message) async {
-    await db.rpc('book_slot', params: {'p_slot': slotId, 'p_message': message});
+  /// [offer] is the price this person suggests, when the host allows offers.
+  Future<void> book(String slotId, String message, {int? offer}) async {
+    await db.rpc('book_slot', params: {'p_slot': slotId, 'p_message': message, if (offer != null) 'p_offer': offer});
+  }
+
+  /// "I've paid": tells the host the money was sent.
+  Future<void> markPaid(String bookingId) async {
+    await db.rpc('mark_paid', params: {'p_booking': bookingId});
   }
 
   Future<void> cancelBooking(String bookingId) async {
@@ -303,13 +313,20 @@ class Repo {
     required String area,
     required String bio,
     required String? avatarPath,
+    String? instapay,
   }) async {
     await db.from('profiles').update({
       'phone': phone,
       'area': area,
       'bio': bio,
       'avatar_path': avatarPath,
+      'instapay': (instapay ?? '').trim().isEmpty ? null : instapay!.trim(),
     }).eq('id', uid);
+  }
+
+  /// Where this member receives payments as a host. Empty clears it.
+  Future<void> saveInstapay(String value) async {
+    await db.from('profiles').update({'instapay': value.trim().isEmpty ? null : value.trim()}).eq('id', uid);
   }
 
   /// Removes the member's files, then the account and everything linked to it.

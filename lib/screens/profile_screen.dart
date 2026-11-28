@@ -140,7 +140,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     future: _me,
                     builder: (context, snap) => snap.data == null
                         ? const SizedBox.shrink()
-                        : RatingLine(rating: snap.data!.rating, count: snap.data!.reviews, compact: true),
+                        : snap.data!.reviews == 0 || snap.data!.rating == null
+                            ? Text(t.noRatingsYet, style: const TextStyle(fontSize: 13, color: AppColors.muted))
+                            : Row(mainAxisSize: MainAxisSize.min, children: [
+                                Stars(rating: snap.data!.rating!, size: 15),
+                                const SizedBox(width: 4),
+                                Text('${snap.data!.rating!.toStringAsFixed(1)} (${snap.data!.reviews})',
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                              ]),
                   ),
                 ]),
               ]),
@@ -153,39 +160,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: const Icon(Icons.verified_outlined),
               label: Text(p.status == VerificationStatus.rejected ? t.sendAgain : t.getVerified),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 20),
           ],
-          Row(children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  final saved = await Navigator.push<bool>(
-                    context,
-                    MaterialPageRoute(builder: (_) => EditProfileScreen(profile: p)),
-                  );
-                  if (saved == true) widget.onChanged();
-                },
-                icon: const Icon(Icons.edit_outlined),
-                label: Text(t.editProfile),
-              ),
+          if (p.isAdmin) ...[
+            FilledButton.icon(
+              onPressed: () => open(const AdminScreen()),
+              icon: const Icon(Icons.admin_panel_settings_outlined),
+              label: Text(t.reviewMembers),
             ),
+            const SizedBox(height: 20),
+          ],
+          _Group(children: [
+            _Row(
+              icon: Icons.edit_outlined,
+              title: t.editProfile,
+              subtitle: (p.instapay ?? '').isEmpty ? t.addInstapayNudge : t.instapayShort(p.instapay!),
+              onTap: () async {
+                final saved = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(builder: (_) => EditProfileScreen(profile: p)),
+                );
+                if (saved == true) widget.onChanged();
+              },
+            ),
+            _Row(icon: Icons.badge_outlined, title: t.viewMyPage, onTap: () => open(MemberScreen(userId: p.id, viewer: p))),
           ]),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: () => open(MemberScreen(userId: p.id, viewer: p)),
-            icon: const Icon(Icons.badge_outlined),
-            label: Text(t.viewMyPage),
-          ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
           _notificationsTile(t),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: () => open(const AlertsScreen()),
-            icon: const Icon(Icons.notification_add_outlined),
-            label: Text(t.myAlerts),
-          ),
-          const SizedBox(height: 28),
-          Text(t.language, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 14),
+          _Group(children: [
+            _Row(icon: Icons.notification_add_outlined, title: t.myAlerts, subtitle: t.alertsShort, onTap: () => open(const AlertsScreen())),
+          ]),
+          const SizedBox(height: 24),
+          Text(t.language, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.body)),
           const SizedBox(height: 10),
           SegmentedButton<String>(
             segments: const [
@@ -198,36 +205,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               repo.saveLanguage(s.first);
             },
           ),
-          if (p.isAdmin) ...[
-            const SizedBox(height: 28),
-            FilledButton.icon(
-              onPressed: () => open(const AdminScreen()),
-              icon: const Icon(Icons.admin_panel_settings_outlined),
-              label: Text(t.reviewMembers),
+          const SizedBox(height: 24),
+          _Group(children: [
+            _Row(icon: Icons.help_outline, title: t.help, onTap: () => open(const HelpScreen())),
+            _Row(
+              icon: Icons.lock_outline,
+              title: t.changePassword,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (ctx) => SetPasswordScreen(onDone: () => Navigator.pop(ctx))),
+              ),
             ),
-          ],
-          const SizedBox(height: 28),
-          OutlinedButton.icon(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (ctx) => SetPasswordScreen(onDone: () => Navigator.pop(ctx))),
-            ),
-            icon: const Icon(Icons.lock_outline),
-            label: Text(t.changePassword),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: repo.signOut,
-            icon: const Icon(Icons.logout),
-            label: Text(t.signOut),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: () => open(const HelpScreen()),
-            icon: const Icon(Icons.help_outline),
-            label: Text(t.help),
-          ),
-          const SizedBox(height: 28),
+            _Row(icon: Icons.logout, title: t.signOut, onTap: repo.signOut, showArrow: false),
+          ]),
+          const SizedBox(height: 20),
           TextButton.icon(
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
             onPressed: _deleting ? null : _deleteAccount,
@@ -238,6 +229,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+}
+
+/// A white card holding a few settings rows, with lines between them.
+class _Group extends StatelessWidget {
+  const _Group({required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: Column(children: [
+          for (var i = 0; i < children.length; i++) ...[
+            if (i > 0) const Divider(indent: 56),
+            children[i],
+          ],
+        ]),
+      );
+}
+
+class _Row extends StatelessWidget {
+  const _Row({required this.icon, required this.title, required this.onTap, this.subtitle, this.showArrow = true});
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final VoidCallback onTap;
+  final bool showArrow;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+        leading: Icon(icon, color: AppColors.body),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+        subtitle: subtitle == null ? null : Text(subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: showArrow ? const Icon(Icons.chevron_right, color: AppColors.muted) : null,
+        onTap: onTap,
+      );
 }
 
 /// A small "English" / "العربية" switch for screens before sign-in.

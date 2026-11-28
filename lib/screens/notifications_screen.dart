@@ -44,7 +44,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         'host_reminder' => t.nHostReminder(n.slotTitle),
         'new_slot' => t.nNewSlot(n.slotTitle),
         'report_received' => t.nReport,
+        'booking_paid' => t.nPaid(n.slotTitle),
         _ => n.type,
+      };
+
+  /// Each kind of news has its own picture and colour, so the list can be read at a glance.
+  (IconData, Color, Color) _look(String type) => switch (type) {
+        'booking_accepted' || 'verification_approved' || 'account_reinstated' =>
+          (Icons.check_circle_outline, AppColors.nile, AppColors.nileTint),
+        'booking_paid' => (Icons.payments_outlined, AppColors.nile, AppColors.nileTint),
+        'booking_requested' => (Icons.inbox_outlined, AppColors.amber, AppColors.amberTint),
+        'booking_declined' || 'booking_cancelled' || 'slot_cancelled' || 'verification_rejected' || 'account_suspended' =>
+          (Icons.cancel_outlined, AppColors.danger, AppColors.dangerTint),
+        'reminder' || 'host_reminder' => (Icons.alarm_rounded, AppColors.blue, AppColors.blueTint),
+        'slot_updated' => (Icons.edit_calendar_outlined, AppColors.blue, AppColors.blueTint),
+        'review_received' => (Icons.star_rounded, Stars.gold, AppColors.amberTint),
+        'new_slot' => (Icons.fiber_new_outlined, AppColors.nile, AppColors.nileTint),
+        'report_received' => (Icons.flag_outlined, AppColors.danger, AppColors.dangerTint),
+        _ => (Icons.notifications_none, AppColors.muted, AppColors.track),
       };
 
   bool _canOpen(AppNotification n) =>
@@ -59,7 +76,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       screen = const AdminScreen(initialTab: 4);
     } else if (slotId == null) {
       return;
-    } else if (n.type == 'booking_requested' || n.type == 'booking_cancelled' || n.type == 'host_reminder') {
+    } else if (n.type == 'booking_requested' || n.type == 'booking_cancelled' || n.type == 'host_reminder' || n.type == 'booking_paid') {
       screen = ManageSlotScreen(slotId: slotId, profile: widget.profile);
     } else {
       screen = SlotDetailScreen(slotId: slotId, profile: widget.profile);
@@ -88,13 +105,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               final n = items[i];
               return ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                leading: Icon(
-                  n.read ? Icons.notifications_none : Icons.notifications_active,
-                  color: n.read ? AppColors.muted : AppColors.nile,
-                ),
+                leading: Builder(builder: (_) {
+                  final (icon, fg, bg) = _look(n.type);
+                  return Badge(
+                    isLabelVisible: !n.read,
+                    smallSize: 10,
+                    backgroundColor: AppColors.danger,
+                    child: CircleAvatar(radius: 21, backgroundColor: bg, child: Icon(icon, color: fg, size: 22)),
+                  );
+                }),
                 title: Text(_text(t, n),
                     style: TextStyle(fontSize: 15, fontWeight: n.read ? FontWeight.w500 : FontWeight.w700)),
-                subtitle: Text('${fullDate(context, n.createdAt)} ${time(context, n.createdAt)}'),
+                subtitle: Text('${dayText(context, n.createdAt)} ${time(context, n.createdAt)}'),
                 onTap: _canOpen(n) ? () => _open(n) : null,
               );
             },
