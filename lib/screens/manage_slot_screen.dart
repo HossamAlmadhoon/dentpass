@@ -6,6 +6,7 @@ import 'package:dentpass/l10n/app_localizations.dart';
 import 'package:dentpass/screens/member_screen.dart';
 import 'package:dentpass/screens/post_slot_screen.dart';
 import 'package:dentpass/screens/review_sheet.dart';
+import 'package:dentpass/services/shared_link.dart';
 import 'package:dentpass/theme.dart';
 import 'package:dentpass/ui/format.dart';
 import 'package:dentpass/ui/kinds.dart';
@@ -177,6 +178,14 @@ class _ManageSlotScreenState extends State<ManageSlotScreen> {
                       value: slot.isOpen,
                       onChanged: _setOpen,
                     ),
+                  if (slot.isOpen && !slot.hasEnded) ...[
+                    OutlinedButton.icon(
+                      onPressed: () => shareSlot(context, slot),
+                      icon: const Icon(Icons.share_outlined),
+                      label: Text(t.shareWhatsApp),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   const Divider(),
                   if (requests.isEmpty) EmptyView(text: t.noRequestsYet),
                   for (final r in requests)

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:dentpass/data/models.dart';
+import 'package:dentpass/data/repo.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
 import 'package:dentpass/screens/bookings_screen.dart';
 import 'package:dentpass/screens/explore_screen.dart';
@@ -10,6 +11,7 @@ import 'package:dentpass/screens/profile_screen.dart';
 import 'package:dentpass/screens/slot_detail_screen.dart';
 import 'package:dentpass/screens/verify_gate.dart';
 import 'package:dentpass/services/notifications.dart';
+import 'package:dentpass/services/shared_link.dart';
 import 'package:dentpass/ui/feedback.dart';
 
 /// The four tabs every member sees. Posting needs the verified mark.
@@ -31,6 +33,15 @@ class _HomeShellState extends State<HomeShell> {
     super.initState();
     PhoneNotifications.instance.prepare();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Opened from a shared link: show that slot first
+      final shared = SharedLink.slotId;
+      if (shared != null) {
+        await SharedLink.clear();
+        if (mounted) {
+          await Navigator.push(context, MaterialPageRoute(builder: (_) => SlotDetailScreen(slotId: shared, profile: widget.profile)));
+        }
+        return;
+      }
       if (!await tourSeen() && mounted) {
         await Navigator.push(context, MaterialPageRoute(fullscreenDialog: true, builder: (_) => const WelcomeTour()));
       }
@@ -51,13 +62,17 @@ class _HomeShellState extends State<HomeShell> {
         builder: (ctx) => DoneScreen(
           title: t.postedTitle,
           body: t.postedBody,
-          primaryLabel: t.viewSlot,
-          onPrimary: () => Navigator.pushReplacement(
+          // Sharing right away is how a new slot reaches dentists' WhatsApp groups
+          primaryLabel: t.shareWhatsApp,
+          onPrimary: () async {
+            final slot = await repo.slot(slotId);
+            if (slot != null && ctx.mounted) await shareSlot(ctx, slot);
+          },
+          secondaryLabel: t.viewSlot,
+          onSecondary: () => Navigator.pushReplacement(
             ctx,
             MaterialPageRoute(builder: (_) => SlotDetailScreen(slotId: slotId, profile: widget.profile)),
           ),
-          secondaryLabel: t.backToExplore,
-          onSecondary: () => Navigator.pop(ctx),
         ),
       ),
     );

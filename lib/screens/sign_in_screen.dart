@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'package:dentpass/data/models.dart';
 import 'package:dentpass/data/repo.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
 import 'package:dentpass/screens/info_screens.dart';
 import 'package:dentpass/screens/password_screens.dart';
 import 'package:dentpass/screens/profile_screen.dart';
+import 'package:dentpass/services/shared_link.dart';
 import 'package:dentpass/theme.dart';
 import 'package:dentpass/ui/widgets.dart';
 
@@ -19,7 +21,8 @@ class _SignInScreenState extends State<SignInScreen> {
   final _form = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
-  bool _signUp = false;
+  // Someone opening a shared slot is most likely new
+  bool _signUp = SharedLink.slotId != null;
   bool _agreed = false;
   bool _triedSignUp = false;
   bool _busy = false;
@@ -80,7 +83,10 @@ class _SignInScreenState extends State<SignInScreen> {
                 Text(t.appName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
               ]),
               const SizedBox(height: 16),
-              Text(t.authIntro, style: const TextStyle(fontSize: 16, height: 1.5, color: AppColors.body)),
+              if (SharedLink.slotId != null)
+                _SharedSlotPreview(slotId: SharedLink.slotId!)
+              else
+                Text(t.authIntro, style: const TextStyle(fontSize: 16, height: 1.5, color: AppColors.body)),
               const SizedBox(height: 28),
               Text(_signUp ? t.signUpTitle : t.signInTitle,
                   style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
@@ -141,6 +147,44 @@ class _SignInScreenState extends State<SignInScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The slot someone shared, shown above sign-up: what it is, when, where, the price.
+class _SharedSlotPreview extends StatefulWidget {
+  const _SharedSlotPreview({required this.slotId});
+  final String slotId;
+
+  @override
+  State<_SharedSlotPreview> createState() => _SharedSlotPreviewState();
+}
+
+class _SharedSlotPreviewState extends State<_SharedSlotPreview> {
+  late final Future<Slot?> _slot = repo.publicSlot(widget.slotId).catchError((_) => null);
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return FutureBuilder<Slot?>(
+      future: _slot,
+      builder: (context, snap) {
+        if (snap.connectionState != ConnectionState.done) return const SizedBox(height: 120);
+        final slot = snap.data;
+        if (slot == null) {
+          return Text(t.sharedSlotGone, style: const TextStyle(fontSize: 16, height: 1.5, color: AppColors.body));
+        }
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(t.sharedSlotIntro, style: const TextStyle(fontSize: 16, height: 1.5, color: AppColors.body)),
+          const SizedBox(height: 12),
+          IgnorePointer(child: SlotCard(slot: slot, onTap: () {})),
+          if (slot.description.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(slot.description, maxLines: 4, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 14, height: 1.5, color: AppColors.body)),
+          ],
+        ]);
+      },
     );
   }
 }

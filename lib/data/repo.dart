@@ -258,6 +258,12 @@ class Repo {
     await db.rpc('book_slot', params: {'p_slot': slotId, 'p_message': message, if (offer != null) 'p_offer': offer});
   }
 
+  /// The basics of an open slot, for a shared link opened before signing in.
+  Future<Slot?> publicSlot(String id) async {
+    final rows = await db.rpc('public_slot', params: {'p_slot': id}) as List;
+    return rows.isEmpty ? null : Slot.fromMap(rows.first as Map<String, dynamic>);
+  }
+
   /// "I've paid": tells the host the money was sent.
   Future<void> markPaid(String bookingId) async {
     await db.rpc('mark_paid', params: {'p_booking': bookingId});

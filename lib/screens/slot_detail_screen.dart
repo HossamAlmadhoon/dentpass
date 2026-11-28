@@ -11,6 +11,7 @@ import 'package:dentpass/screens/manage_slot_screen.dart';
 import 'package:dentpass/screens/member_screen.dart';
 import 'package:dentpass/screens/review_sheet.dart';
 import 'package:dentpass/services/calendar.dart';
+import 'package:dentpass/services/shared_link.dart';
 import 'package:dentpass/theme.dart';
 import 'package:dentpass/ui/feedback.dart';
 import 'package:dentpass/ui/format.dart';
@@ -154,6 +155,8 @@ class _SlotDetailScreenState extends State<SlotDetailScreen> {
         final going = isHost || booking?.status == BookingStatus.accepted;
         return Scaffold(
           appBar: AppBar(actions: [
+            if (slot.isOpen && !slot.hasEnded)
+              IconButton(tooltip: t.share, onPressed: () => shareSlot(context, slot), icon: const Icon(Icons.share_outlined)),
             if (!isHost)
               PopupMenuButton<String>(
                 onSelected: (_) => showReportSheet(context, slotId: slot.id, memberId: slot.hostId, title: t.reportSlot),

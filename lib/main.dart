@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dentpass/app.dart';
 import 'package:dentpass/config.dart';
 import 'package:dentpass/locale_controller.dart';
+import 'package:dentpass/services/shared_link.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +25,7 @@ Future<void> main() async {
     authOptions: FlutterAuthClientOptions(authFlowType: kIsWeb ? AuthFlowType.implicit : AuthFlowType.pkce),
   );
   localeController = await LocaleController.load();
+  await SharedLink.capture();
 
   runApp(const DentPassApp());
 }

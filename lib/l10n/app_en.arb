@@ -772,5 +772,13 @@
         "type": "String"
       }
     }
-  }
+  },
+  "share": "Share",
+  "shareTitle": "Share this slot",
+  "shareWhatsApp": "Share on WhatsApp",
+  "shareWhatsAppHint": "Send it to a chat or a dentists' group",
+  "copyLink": "Copy link and details",
+  "shareBookOn": "Book on DentPass:",
+  "sharedSlotGone": "This slot is closed or full now. Join DentPass to see other seats, courses, chairs and shifts.",
+  "sharedSlotIntro": "A colleague shared this with you. Create a free account to book it."
 }
