@@ -11,3 +11,4 @@ build/
 key.properties
 lib/l10n/app_localizations*.dart
 screenshots/fonts/
+screenshots/out/
