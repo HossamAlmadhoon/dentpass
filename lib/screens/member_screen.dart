@@ -104,7 +104,7 @@ class _MemberScreenState extends State<MemberScreen> {
                       _StarBars(reviews: reviews),
                     ],
                     const Divider(height: 24),
-                    Text(t.memberSince(monthShort(context, member.memberSince) + ' ${member.memberSince.year}'),
+                    Text(t.memberSince('${monthShort(context, member.memberSince)} ${member.memberSince.year}'),
                         style: const TextStyle(color: AppColors.body)),
                     Text(t.hostedCount(member.hosted), style: const TextStyle(color: AppColors.body)),
                     Text(t.attendedCount(member.attended), style: const TextStyle(color: AppColors.body)),

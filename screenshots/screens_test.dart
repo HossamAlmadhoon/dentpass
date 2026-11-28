@@ -1,7 +1,6 @@
 // Renders the main screens with sample data, so the design can be reviewed as pictures.
 // Run in CI by .github/workflows/screens.yml: flutter test screenshots --update-goldens
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -57,7 +56,8 @@ final _slots = [
       day: 2, capacity: 3, taken: 1, price: 1500),
   _slotMap('s2', 'rent', 'كرسي مجهز بالكامل في عيادة بالمعادي',
       host: 'د. منى فتحي', hostId: 'h2', area: 'maadi', day: 1, hour: 9, len: 8, capacity: 1, taken: 0, price: 900,
-      rating: 4.6, reviews: 5),
+      rating: 4.6, reviews: 5)
+    ..['negotiable'] = true,
   _slotMap('s3', 'cover', 'مطلوب مساعدة لشيفت مسائي',
       host: 'د. كريم السيد', hostId: 'h3', area: 'nasr_city', day: 0, hour: 17, len: 5, capacity: 1, taken: 0,
       price: 400, needRole: 'assistant', rating: null, reviews: 0),
@@ -96,6 +96,7 @@ class FakeRepo extends Repo {
     if (booking?['status'] == 'accepted') {
       s['address'] = '12 شارع الثورة، الدور الثالث';
       s['host_phone'] = '01099990000';
+      s['host_instapay'] = 'ahmed.mansour@instapay';
     }
     return Slot.fromMap(s);
   }
@@ -135,7 +136,7 @@ class FakeRepo extends Repo {
         Booking.fromMap({'id': 'b2', 'slot_id': 's4', 'status': 'pending', 'price_egp': 4500, 'fee_egp': 450, 'slots': _slots[3]}),
         Booking.fromMap({
           'id': 'b3', 'slot_id': 'old', 'status': 'accepted', 'price_egp': 800, 'fee_egp': 80,
-          'slots': _slotMap('old', 'observe', 'رفع جيوب أنفية مغلق', day: -12),
+          'slots': _slotMap('old', 'observe', 'رفع جيوب أنفية مغلق', day: -3),
         }),
       ];
 
@@ -154,12 +155,14 @@ class FakeRepo extends Repo {
         SlotRequest.fromMap({
           'id': 'r2', 'user_id': 'u2', 'status': 'pending', 'message': '',
           'full_name': 'د. نورا سمير', 'role': 'dentist', 'rating': null, 'reviews': 0, 'reviewed': false, 'verified': false,
+          'offer_egp': 1200,
           'price_egp': 1500, 'fee_egp': 150, 'created_at': _at(0, 8),
         }),
         SlotRequest.fromMap({
           'id': 'r3', 'user_id': 'u3', 'status': 'accepted', 'message': 'شكراً',
           'full_name': 'د. عمر خالد', 'role': 'dentist', 'phone': '01122223333', 'rating': 5, 'reviews': 2,
           'reviewed': false, 'verified': true, 'price_egp': 1500, 'fee_egp': 150, 'created_at': _at(-2, 12),
+          'paid_at': _at(-1, 15),
         }),
       ];
 
@@ -258,6 +261,7 @@ Future<void> _show(WidgetTester tester, String name, Widget home,
 void main() {
   setUpAll(_loadFonts);
   setUp(() {
+    // ignore: invalid_use_of_visible_for_testing_member
     SharedPreferences.setMockInitialValues({'welcome_tour_seen_v1': true});
     repo = FakeRepo();
   });
@@ -308,6 +312,20 @@ void main() {
     await _show(t, '04_slot_accepted', SlotDetailScreen(slotId: 's1', profile: _me()), height: 1100);
     repo = FakeRepo();
     await _show(t, '04_slot_cover', SlotDetailScreen(slotId: 's3', profile: _me()));
+  });
+
+  testWidgets('04b negotiable and filters', (t) async {
+    tolerant();
+    await _show(t, '04b_slot_negotiable', SlotDetailScreen(slotId: 's2', profile: _me()));
+    await _show(t, '04b_offer_sheet', SlotDetailScreen(slotId: 's2', profile: _me()), then: () async {
+      await t.tap(find.byType(FilledButton).last);
+      await t.pumpAndSettle();
+      await t.tap(find.byType(Switch).last);
+      await t.pumpAndSettle();
+      await t.enterText(find.byType(TextField).first, '700');
+    });
+    await _show(t, '04b_filters', HomeShell(profile: _me(), onProfileChanged: () {}),
+        then: () => t.tap(find.byIcon(Icons.tune_rounded)));
   });
 
   testWidgets('05 tabs', (t) async {
