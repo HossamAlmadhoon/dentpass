@@ -59,7 +59,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         'reminder' || 'host_reminder' => (Icons.alarm_rounded, AppColors.blue, AppColors.blueTint),
         'slot_updated' => (Icons.edit_calendar_outlined, AppColors.blue, AppColors.blueTint),
         'review_received' => (Icons.star_rounded, Stars.gold, AppColors.amberTint),
-        'new_slot' => (Icons.fiber_new_outlined, AppColors.nile, AppColors.nileTint),
+        'new_slot' => (Icons.campaign_outlined, AppColors.nile, AppColors.nileTint),
         'report_received' => (Icons.flag_outlined, AppColors.danger, AppColors.dangerTint),
         _ => (Icons.notifications_none, AppColors.muted, AppColors.track),
       };

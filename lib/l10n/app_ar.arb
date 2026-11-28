@@ -379,7 +379,7 @@
   "nearMeHint": "الأقرب أولاً",
   "negotiable": "قابل للتفاوض",
   "negotiableHint": "السعر قابل للتفاوض، ويمكنك اقتراح سعرك.",
-  "newRequest": "جديد",
+  "newRequest": "بانتظار ردك",
   "noRatingsYet": "لا تقييمات بعد",
   "paidBody": "أبلغت المضيف أنك دفعت يوم {date}.",
   "paidTitle": "تم الدفع",

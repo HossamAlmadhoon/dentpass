@@ -603,7 +603,7 @@
   "nearMeHint": "Closest slots first",
   "negotiable": "Negotiable",
   "negotiableHint": "Price is negotiable. You can suggest yours.",
-  "newRequest": "New",
+  "newRequest": "Needs reply",
   "noRatingsYet": "No ratings yet",
   "paidBody": "You told the host you paid on {date}.",
   "@paidBody": {
