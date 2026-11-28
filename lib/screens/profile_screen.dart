@@ -8,6 +8,7 @@ import 'package:dentpass/locale_controller.dart';
 import 'package:dentpass/screens/admin_screen.dart';
 import 'package:dentpass/screens/alerts_screen.dart';
 import 'package:dentpass/screens/edit_profile_screen.dart';
+import 'package:dentpass/screens/fees_screen.dart';
 import 'package:dentpass/screens/info_screens.dart';
 import 'package:dentpass/screens/member_screen.dart';
 import 'package:dentpass/screens/password_screens.dart';
@@ -184,6 +185,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               },
             ),
             _Row(icon: Icons.badge_outlined, title: t.viewMyPage, onTap: () => open(MemberScreen(userId: p.id, viewer: p))),
+            if (p.isVerified)
+              _Row(icon: Icons.receipt_long_outlined, title: t.dentpassFees, subtitle: t.dentpassFeesShort, onTap: () => open(const FeesScreen())),
           ]),
           const SizedBox(height: 14),
           _notificationsTile(t),

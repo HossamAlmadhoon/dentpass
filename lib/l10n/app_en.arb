@@ -116,7 +116,7 @@
   "reviewPrice": "Price",
   "reviewFee": "DentPass fee",
   "reviewTotal": "Total",
-  "reviewPayNote": "Nothing is charged now. Pay the host by InstaPay once they accept.",
+  "reviewPayNote": "Nothing is charged now, and there are no extra fees. Pay the host by InstaPay once they accept.",
   "reviewCoverNote": "The clinic pays you {amount} for the shift. There's no fee for you.",
   "@reviewCoverNote": {
     "placeholders": {
@@ -465,7 +465,7 @@
   "help": "Help and contact",
   "contactWhatsapp": "Message DentPass on WhatsApp",
   "faq1q": "How do I pay?",
-  "faq1a": "After the host accepts, pay them directly by InstaPay. The DentPass fee is shown before you send a request.",
+  "faq1a": "After the host accepts, pay them the listed price directly by InstaPay. Guests pay no DentPass fee.",
   "faq2q": "Do I have to send my syndicate card?",
   "faq2a": "Only to post slots. Verified members get a mark on their profile and requests, so others can trust them. Only DentPass admins can see your documents.",
   "faq3q": "When do others see my address and phone?",
@@ -521,7 +521,7 @@
   },
   "openReports": "Open",
   "closedReports": "Handled",
-  "feePercent": "DentPass fee (%)",
+  "feePercent": "Host fee (%)",
   "supportWhatsapp": "Support WhatsApp number",
   "settingsSaved": "Settings saved.",
   "nReminder": "Reminder: \"{title}\" is coming up soon",
@@ -696,5 +696,81 @@
       }
     }
   },
-  "yourPrice": "Your price"
+  "yourPrice": "Your price",
+  "adminFees": "Fees",
+  "bookingsCount": "{count, plural, =1{1 booking} other{{count} bookings}}",
+  "@bookingsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "confirmFees": "Confirm received",
+  "confirmFeesQuestion": "Did {amount} from {name} arrive?",
+  "@confirmFeesQuestion": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "dentpassFees": "DentPass fees",
+  "dentpassFeesShort": "What you owe DentPass each month",
+  "dentpassInstapay": "DentPass InstaPay (where hosts pay fees)",
+  "feePercentHelp": "Taken from the host for each accepted booking and paid monthly. Guests always pay the listed price. 0 = free.",
+  "feesChecking": "Checking",
+  "feesDue": "Due",
+  "feesFreePilot": "DentPass is free for hosts during the pilot. Guests pay you the listed price, and you owe DentPass nothing.",
+  "feesHostSaysPaid": "Host says they paid",
+  "feesHowItWorks": "Guests pay you the listed price. DentPass takes {percent}% of each accepted booking. Pay each month's total by InstaPay, then tap \"I've paid\".",
+  "@feesHowItWorks": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "feesMonthLine": "{count, plural, =1{1 booking} other{{count} bookings}} · you received {earned}",
+  "@feesMonthLine": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "earned": {
+        "type": "String"
+      }
+    }
+  },
+  "feesNone": "Free",
+  "feesNothingYet": "Nothing yet. Fees show here once you accept bookings.",
+  "feesOutstanding": "Still to collect: {amount}",
+  "@feesOutstanding": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "feesOwed": "DentPass fee: {amount}",
+  "@feesOwed": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "feesSettled": "Settled",
+  "hostFeeFree": "No DentPass fee for hosts during the pilot",
+  "hostFeeNote": "DentPass takes {percent}% of each accepted booking, paid monthly",
+  "@hostFeeNote": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  }
 }

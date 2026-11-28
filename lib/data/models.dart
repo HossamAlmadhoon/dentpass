@@ -208,7 +208,9 @@ class Booking {
   /// When this person said they sent the money.
   final DateTime? paidAt;
 
-  int get totalEgp => priceEgp + feeEgp;
+  /// What the guest pays the host: the listed (or agreed) price, nothing added.
+  /// DentPass's share ([feeEgp]) is settled by the host each month.
+  int get totalEgp => priceEgp;
 
   bool get isActive => status == BookingStatus.pending || status == BookingStatus.accepted;
 
@@ -548,13 +550,59 @@ class SlotAlert {
 }
 
 class AppSettings {
-  AppSettings({required this.feePercent, required this.supportWhatsapp});
+  AppSettings({required this.feePercent, required this.supportWhatsapp, this.dentpassInstapay});
 
+  /// DentPass's share of each accepted booking, paid by the host monthly. 0 during the pilot.
   final int feePercent;
   final String? supportWhatsapp;
+
+  /// Where hosts send DentPass fees.
+  final String? dentpassInstapay;
 
   factory AppSettings.fromMap(Map<String, dynamic> m) => AppSettings(
         feePercent: _int(m['fee_percent']),
         supportWhatsapp: m['support_whatsapp'] as String?,
+        dentpassInstapay: m['instapay_handle'] as String?,
+      );
+}
+
+/// One month of a host's DentPass fees.
+class FeeMonth {
+  FeeMonth({
+    required this.month,
+    required this.bookings,
+    required this.earnedEgp,
+    required this.feeEgp,
+    this.hostPaidAt,
+    this.confirmedAt,
+    this.hostId = '',
+    this.hostName = '',
+    this.hostPhone,
+  });
+
+  final DateTime month;
+  final int bookings;
+  final int earnedEgp;
+  final int feeEgp;
+  final DateTime? hostPaidAt;
+  final DateTime? confirmedAt;
+
+  // Filled in on the admin list
+  final String hostId;
+  final String hostName;
+  final String? hostPhone;
+
+  bool get owes => feeEgp > 0 && confirmedAt == null;
+
+  factory FeeMonth.fromMap(Map<String, dynamic> m) => FeeMonth(
+        month: DateTime.parse(m['month'] as String),
+        bookings: _int(m['bookings']),
+        earnedEgp: _int(m['earned_egp']),
+        feeEgp: _int(m['fee_egp']),
+        hostPaidAt: m['host_paid_at'] == null ? null : _date(m['host_paid_at']),
+        confirmedAt: m['confirmed_at'] == null ? null : _date(m['confirmed_at']),
+        hostId: (m['host_id'] as String?) ?? '',
+        hostName: (m['full_name'] as String?) ?? '',
+        hostPhone: m['phone'] as String?,
       );
 }

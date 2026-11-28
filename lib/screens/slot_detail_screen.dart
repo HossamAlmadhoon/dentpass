@@ -309,17 +309,11 @@ class _SlotDetailScreenState extends State<SlotDetailScreen> {
     if (booking != null && booking.isActive) {
       final parts = <String>[
         if (booking.offerEgp != null) t.yourOffer(priceText(context, booking.offerEgp!)),
-        if (slot.kind != SlotKind.cover && booking.feeEgp > 0) t.totalWithFee(priceText(context, booking.totalEgp)),
       ];
       return parts.isEmpty ? null : parts.join('\n');
     }
     if (slot.hostId == widget.profile.id) return slot.negotiable ? t.negotiableHint : null;
-    final fee = slot.kind == SlotKind.cover ? 0 : (slot.priceEgp * feePercent / 100).round();
-    final parts = <String>[
-      if (fee > 0) t.totalWithFee(priceText(context, slot.priceEgp + fee)),
-      if (slot.negotiable) t.negotiableHint,
-    ];
-    return parts.isEmpty ? null : parts.join('\n');
+    return slot.negotiable ? t.negotiableHint : null;
   }
 
   Widget _actions(BuildContext context, Slot slot, Booking? booking, bool isHost, int feePercent, bool rated) {

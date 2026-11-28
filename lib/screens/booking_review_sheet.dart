@@ -70,7 +70,6 @@ class _BookingReviewSheetState extends State<BookingReviewSheet> {
     final s = widget.slot;
     final isCover = s.kind == SlotKind.cover;
     final price = _offerValue ?? s.priceEgp;
-    final fee = isCover ? 0 : (price * widget.feePercent / 100).round();
 
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
@@ -112,10 +111,7 @@ class _BookingReviewSheetState extends State<BookingReviewSheet> {
               Text(t.reviewCoverNote(priceText(context, price)),
                   style: const TextStyle(fontSize: 15, height: 1.5))
             else ...[
-              _row(_offerValue != null ? t.yourPrice : t.reviewPrice, priceText(context, price)),
-              _row(t.reviewFee, priceText(context, fee)),
-              const Divider(height: 20),
-              _row(t.reviewTotal, priceText(context, price + fee), bold: true),
+              _row(_offerValue != null ? t.yourPrice : t.reviewPrice, priceText(context, price), bold: true),
               const SizedBox(height: 8),
               Text(t.reviewPayNote, style: const TextStyle(fontSize: 14, height: 1.5, color: AppColors.body)),
             ],

@@ -361,15 +361,37 @@ class Repo {
   }
 
   Future<AppSettings> settings() async {
-    final row = await db.from('app_settings').select('fee_percent, support_whatsapp').single();
+    final row = await db.from('app_settings').select('fee_percent, support_whatsapp, instapay_handle').single();
     return AppSettings.fromMap(row);
   }
 
-  Future<void> saveSettings({required int feePercent, required String supportWhatsapp}) async {
+  Future<void> saveSettings({required int feePercent, required String supportWhatsapp, String? dentpassInstapay}) async {
     await db.from('app_settings').update({
       'fee_percent': feePercent,
       'support_whatsapp': supportWhatsapp.isEmpty ? null : supportWhatsapp,
+      'instapay_handle': (dentpassInstapay ?? '').trim().isEmpty ? null : dentpassInstapay!.trim(),
     }).eq('id', true);
+  }
+
+  // ---------------------------------------------------------------- DentPass fees (hosts pay monthly)
+  static String _monthKey(DateTime m) => '${m.year}-${m.month.toString().padLeft(2, '0')}-01';
+
+  Future<List<FeeMonth>> hostStatement() async {
+    final rows = await db.rpc('host_statement') as List;
+    return rows.map((r) => FeeMonth.fromMap(r as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> markFeesPaid(DateTime month) async {
+    await db.rpc('mark_fees_paid', params: {'p_month': _monthKey(month)});
+  }
+
+  Future<List<FeeMonth>> adminFees() async {
+    final rows = await db.rpc('admin_fees') as List;
+    return rows.map((r) => FeeMonth.fromMap(r as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> confirmFees(String hostId, DateTime month) async {
+    await db.rpc('confirm_fees', params: {'p_host': hostId, 'p_month': _monthKey(month)});
   }
 
   // ---------------------------------------------------------------- reports and alerts

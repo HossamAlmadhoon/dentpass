@@ -50,6 +50,7 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
   late bool _negotiable = _old?.negotiable ?? false;
   final _instapay = TextEditingController();
   String _savedInstapay = '';
+  int? _feePercent;
   late SlotKind _kind = _old?.kind ?? SlotKind.observe;
   late String? _area = _old?.area;
   late DateTime? _date = widget.template != null ? null : _old?.startsAt;
@@ -80,6 +81,9 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
   void initState() {
     super.initState();
     // Where guests pay: kept on the profile, filled in here the first time
+    repo.feePercent().then((f) {
+      if (mounted) setState(() => _feePercent = f);
+    }).catchError((_) {});
     repo.myProfile().then((p) {
       if (!mounted) return;
       _savedInstapay = p.instapay ?? '';
@@ -366,7 +370,15 @@ class _PostSlotScreenState extends State<PostSlotScreen> {
               controller: _price,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(7)],
-              decoration: InputDecoration(labelText: priceLabel),
+              decoration: InputDecoration(
+                labelText: priceLabel,
+                helperText: _kind == SlotKind.cover || _feePercent == null
+                    ? null
+                    : _feePercent == 0
+                        ? t.hostFeeFree
+                        : t.hostFeeNote('$_feePercent'),
+                helperMaxLines: 2,
+              ),
               validator: (v) => (v == null || v.isEmpty) ? t.required : null,
             ),
             SwitchListTile(

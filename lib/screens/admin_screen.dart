@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:dentpass/data/areas.dart';
 import 'package:dentpass/data/models.dart';
 import 'package:dentpass/data/repo.dart';
+import 'package:dentpass/screens/fees_screen.dart';
 import 'package:dentpass/screens/info_screens.dart';
 import 'package:dentpass/l10n/app_localizations.dart';
 import 'package:dentpass/theme.dart';
@@ -36,10 +37,11 @@ class AdminScreen extends StatelessWidget {
               Tab(text: t.adminOverview),
               Tab(text: t.adminReports),
               Tab(text: t.adminSettings),
+              Tab(text: t.adminFees),
             ],
           ),
         ),
-        body: const TabBarView(children: [_Waiting(), _Members(), _Slots(), _Overview(), _Reports(), _Settings()]),
+        body: const TabBarView(children: [_Waiting(), _Members(), _Slots(), _Overview(), _Reports(), _Settings(), _Fees()]),
       ),
     );
   }
@@ -569,9 +571,11 @@ class _Settings extends StatefulWidget {
 class _SettingsState extends State<_Settings> {
   final _fee = TextEditingController();
   final _whatsapp = TextEditingController();
+  final _instapay = TextEditingController();
   late final Future<AppSettings> _loaded = repo.settings().then((s) {
     _fee.text = '${s.feePercent}';
     _whatsapp.text = s.supportWhatsapp ?? '';
+    _instapay.text = s.dentpassInstapay ?? '';
     return s;
   });
   bool _busy = false;
@@ -580,6 +584,7 @@ class _SettingsState extends State<_Settings> {
   void dispose() {
     _fee.dispose();
     _whatsapp.dispose();
+    _instapay.dispose();
     super.dispose();
   }
 
@@ -592,7 +597,7 @@ class _SettingsState extends State<_Settings> {
     }
     setState(() => _busy = true);
     try {
-      await repo.saveSettings(feePercent: fee, supportWhatsapp: _whatsapp.text.trim());
+      await repo.saveSettings(feePercent: fee, supportWhatsapp: _whatsapp.text.trim(), dentpassInstapay: _instapay.text);
       if (mounted) showMessage(context, t.settingsSaved);
     } catch (e) {
       if (mounted) showMessage(context, errorText(context, e));
@@ -615,7 +620,13 @@ class _SettingsState extends State<_Settings> {
             TextField(
               controller: _fee,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: t.feePercent),
+              decoration: InputDecoration(labelText: t.feePercent, helperText: t.feePercentHelp, helperMaxLines: 3),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _instapay,
+              textDirection: TextDirection.ltr,
+              decoration: InputDecoration(labelText: t.dentpassInstapay, hintText: 'dentpass@instapay'),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -627,6 +638,91 @@ class _SettingsState extends State<_Settings> {
             const SizedBox(height: 20),
             FilledButton(onPressed: _busy ? null : _save, child: Text(t.saveChanges)),
           ],
+        );
+      },
+    );
+  }
+}
+
+// ------------------------------------------------------------------ fees
+/// What each host owes DentPass, by month. Confirm when the money arrives.
+class _Fees extends StatefulWidget {
+  const _Fees();
+
+  @override
+  State<_Fees> createState() => _FeesState();
+}
+
+class _FeesState extends State<_Fees> {
+  late Future<List<FeeMonth>> _items = repo.adminFees();
+
+  void _reload() => setState(() => _items = repo.adminFees());
+
+  Future<void> _confirm(FeeMonth m) async {
+    final t = AppLocalizations.of(context);
+    if (!await confirmAction(context, title: t.confirmFeesQuestion(priceText(context, m.feeEgp), m.hostName), action: t.confirmFees)) {
+      return;
+    }
+    try {
+      await repo.confirmFees(m.hostId, m.month);
+      _reload();
+    } catch (e) {
+      if (mounted) showMessage(context, errorText(context, e));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return FutureBuilder<List<FeeMonth>>(
+      future: _items,
+      builder: (context, snap) {
+        if (snap.hasError) return ErrorView(error: snap.error!, onRetry: _reload);
+        if (!snap.hasData) return const LoadingView();
+        final items = snap.data!;
+        final open = items.where((m) => m.confirmedAt == null).fold<int>(0, (a, m) => a + m.feeEgp);
+        return RefreshIndicator(
+          onRefresh: () async => _reload(),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Text(t.feesOutstanding(priceText(context, open)), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 12),
+              if (items.isEmpty) EmptyView(text: t.feesNothingYet),
+              for (final m in items)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Expanded(child: Text(m.hostName, style: const TextStyle(fontWeight: FontWeight.w800))),
+                      Text(priceText(context, m.feeEgp), style: const TextStyle(fontWeight: FontWeight.w800)),
+                    ]),
+                    Text('${monthName(context, m.month)} · ${t.bookingsCount(m.bookings)}',
+                        style: const TextStyle(color: AppColors.muted)),
+                    const SizedBox(height: 6),
+                    if (m.confirmedAt != null)
+                      Text(t.feesSettled, style: const TextStyle(color: AppColors.nile, fontWeight: FontWeight.w700))
+                    else
+                      Row(children: [
+                        Expanded(
+                          child: Text(m.hostPaidAt != null ? t.feesHostSaysPaid : t.feesDue,
+                              style: TextStyle(
+                                  color: m.hostPaidAt != null ? AppColors.blue : AppColors.amber, fontWeight: FontWeight.w700)),
+                        ),
+                        if (m.hostPhone != null)
+                          IconButton(
+                            tooltip: t.whatsapp,
+                            onPressed: () => openWhatsApp(m.hostPhone!),
+                            icon: const Icon(Icons.chat_outlined),
+                          ),
+                        TextButton(onPressed: () => _confirm(m), child: Text(t.confirmFees)),
+                      ]),
+                  ]),
+                ),
+            ],
+          ),
         );
       },
     );
