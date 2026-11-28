@@ -130,7 +130,10 @@ void main() {
       ));
       await tester.pumpAndSettle();
       final t = lookupAppLocalizations(Locale(lang));
-      expect(find.text(t.reviewTotal), findsOneWidget);
+      // Guests pay the listed price: no DentPass fee or total lines
+      expect(find.text(t.reviewPrice), findsOneWidget);
+      expect(find.text(t.reviewFee), findsNothing);
+      expect(find.text(t.reviewPayNote), findsOneWidget);
       restore();
     });
 
