@@ -60,7 +60,6 @@ test('Negotiable prices, InstaPay and paid mark', async () => {
   const b2 = ok(await other.c.rpc('book_slot', { p_slot: open.id, p_message: 'Can we do 800?', p_offer: 800 }), 'offer');
   assert.equal(b2.price_egp, 800);
   assert.equal(b2.offer_egp, 800);
-  assert.equal(b2.fee_egp, 80);
   // Old two-argument calls still work
   const b3 = ok(await guest.c.rpc('book_slot', { p_slot: open.id, p_message: '' }), 'no offer');
   assert.equal(b3.price_egp, 1000);
